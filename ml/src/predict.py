@@ -5,12 +5,11 @@ import argparse
 import joblib
 import numpy as np
 import pandas as pd
-from datetime import datetime, timedelta
+from datetime import datetime
 
 MODEL_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "models", "price_forecast_model.joblib"))
 DATA_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "Data", "processed", "historical_prices_clean.csv"))
 
-# Load model cache
 _cached_artifact = None
 
 def get_model():
@@ -19,202 +18,260 @@ def get_model():
         _cached_artifact = joblib.load(MODEL_PATH)
     return _cached_artifact
 
-def predict_crop_price(commodity, state="All India", current_price=None, horizon_days=7, reference_date="2026-09-08"):
+def predict_crop_price(commodity, state="All India", current_price=None, reference_date="2026-09-08"):
     artifact = get_model()
     if artifact is None:
         return {
-            "error": "Trained model not found. Please train model first.",
-            "status": "failed"
+            "success": False,
+            "status": "failed",
+            "error": "Trained ML model artifact not found. Please run train.py first."
         }
         
     model = artifact['model']
     feature_cols = artifact['feature_cols']
     crop_categories = artifact['crop_categories']
-    rmse = artifact.get('rmse', 500.0)
+    crop_dummy_cols = artifact.get('crop_dummy_cols', [])
+    rmse = artifact.get('rmse', 734.82)
+    mae = artifact.get('mae', 407.68)
+    r2 = artifact.get('r2', 0.9294)
+    model_name = artifact.get('best_model_name', 'Hist_Gradient_Boosting')
     
-    # Load historical series for this crop and state
-    df_hist = pd.read_csv(DATA_PATH)
-    
-    # Filter crop
+    # 1. Commodity Validation
+    if not commodity or not str(commodity).strip():
+        return {
+            "success": False,
+            "status": "failed",
+            "error": "Commodity name is required.",
+            "available_crops": crop_categories
+        }
+        
+    c_clean = commodity.strip().lower()
     matched_crop = None
     for c in crop_categories:
-        if c.lower() == commodity.lower() or commodity.lower() in c.lower():
+        if c.lower() == c_clean:
             matched_crop = c
             break
             
     if matched_crop is None:
-        # Fallback to closest or default
-        matched_crop = 'Wheat'
+        for c in crop_categories:
+            if c_clean in c.lower() or c.lower() in c_clean:
+                matched_crop = c
+                break
+                
+    if matched_crop is None:
+        return {
+            "success": False,
+            "status": "failed",
+            "error": f"Crop '{commodity}' is not recognized in the 10-year historical dataset.",
+            "available_crops": crop_categories
+        }
         
-    # Filter state
-    matched_state = state
-    state_series = df_hist[(df_hist['Crop'] == matched_crop) & (df_hist['State'] == matched_state)]
+    # 2. State Historical Series Matching
+    if not os.path.exists(DATA_PATH):
+        return {
+            "success": False,
+            "status": "failed",
+            "error": f"Historical data file not found at: {DATA_PATH}"
+        }
+        
+    df_hist = pd.read_csv(DATA_PATH)
+    target_state = state.strip() if state else "All India"
+    
+    state_series = df_hist[(df_hist['Crop'] == matched_crop) & (df_hist['State'].str.lower() == target_state.lower())]
+    used_state = target_state
+    
+    if len(state_series) < 6 and target_state.lower() != 'all india':
+        state_series = df_hist[(df_hist['Crop'] == matched_crop) & (df_hist['State'] == 'All India')]
+        used_state = 'All India'
+        
     if len(state_series) == 0:
-        # Fallback to All India
-        matched_state = 'All India'
-        state_series = df_hist[(df_hist['Crop'] == matched_crop) & (df_hist['State'] == matched_state)]
+        return {
+            "success": False,
+            "status": "failed",
+            "error": f"Insufficient historical records for '{matched_crop}' in '{target_state}' or All India.",
+            "status_code": 404
+        }
         
-    if len(state_series) < 3:
-        state_series = df_hist[df_hist['Crop'] == matched_crop]
-        
-    # Get latest historical values
-    state_series = state_series.sort_values(by='date')
+    # Sort series chronologically
+    state_series = state_series.sort_values(by=['year', 'month']).reset_index(drop=True)
     price_col = 'Mandi Modal Price (AgMarknet)'
     recent_prices = state_series[price_col].values
     
-    lag_1 = float(recent_prices[-1]) if len(recent_prices) > 0 else 2500.0
-    lag_2 = float(recent_prices[-2]) if len(recent_prices) > 1 else lag_1
-    lag_3 = float(recent_prices[-3]) if len(recent_prices) > 2 else lag_2
-    lag_12 = float(recent_prices[-12]) if len(recent_prices) >= 12 else lag_1
+    # Establish base active price
+    hist_latest = float(recent_prices[-1])
+    live_price = float(current_price) if (current_price and float(current_price) > 0) else hist_latest
     
-    if current_price and current_price > 0:
-        # User provided active live mandi price
-        live_price = float(current_price)
-    else:
-        live_price = lag_1
+    # Recent lags
+    lag_1 = live_price
+    lag_2 = float(recent_prices[-1]) if live_price != hist_latest else (float(recent_prices[-2]) if len(recent_prices) > 1 else lag_1)
+    lag_3 = float(recent_prices[-2]) if len(recent_prices) > 1 else lag_2
+    
+    # Helper to retrieve year-ago price for specific month
+    def get_year_ago_price(m):
+        row = state_series[(state_series['year'] == 2025) & (state_series['month'] == m)]
+        if len(row) > 0:
+            return float(row[price_col].iloc[0])
+        return lag_1
         
-    # Prepare base features
-    ref_dt = datetime.strptime(reference_date, "%Y-%m-%d")
-    month = ref_dt.month
-    quarter = (month - 1) // 3 + 1
-    month_sin = np.sin(2 * np.pi * month / 12.0)
-    month_cos = np.cos(2 * np.pi * month / 12.0)
+    # Phase 15: Mandatory compliance with forecast temporal validity
+    # The dataset is monthly state-level data; daily mandi forecast is not supported by 3 days of mandi data
+    daily_disclaimer = "Not enough historical data to generate a reliable 7–10 day mandi forecast."
     
-    rolling_3 = np.mean(recent_prices[-3:]) if len(recent_prices) >= 3 else live_price
-    rolling_std_3 = np.std(recent_prices[-3:]) if len(recent_prices) >= 3 else 100.0
-    rolling_6 = np.mean(recent_prices[-6:]) if len(recent_prices) >= 6 else live_price
-    rolling_12 = np.mean(recent_prices[-12:]) if len(recent_prices) >= 12 else live_price
-    momentum_3 = live_price - lag_3
-    ratio_to_12m = live_price / (rolling_12 + 1e-5)
+    # 3. Generate Legitimate Monthly Projections (Month 1: Oct 2026, Month 2: Nov 2026, Month 3: Dec 2026)
+    forward_months = [
+        {"month": 10, "year": 2026, "label": "October 2026", "short_label": "Oct 2026"},
+        {"month": 11, "year": 2026, "label": "November 2026", "short_label": "Nov 2026"},
+        {"month": 12, "year": 2026, "label": "December 2026", "short_label": "Dec 2026"}
+    ]
     
-    # Construct feature row
-    feat_dict = {
-        'lag_1': live_price,
-        'lag_2': lag_1,
-        'lag_3': lag_2,
-        'lag_12': lag_12,
-        'rolling_mean_3': rolling_3,
-        'rolling_std_3': rolling_std_3,
-        'rolling_mean_6': rolling_6,
-        'rolling_mean_12': rolling_12,
-        'momentum_3': momentum_3,
-        'ratio_to_12m': ratio_to_12m,
-        'month': month,
-        'quarter': quarter,
-        'month_sin': month_sin,
-        'month_cos': month_cos
-    }
+    monthly_forecast = []
+    curr_lag1 = lag_1
+    curr_lag2 = lag_2
+    curr_lag3 = lag_3
     
-    # Add one-hot crop columns
-    for col in feature_cols:
-        if col.startswith('crop_'):
-            crop_name_col = col.replace('crop_', '')
-            feat_dict[col] = 1 if crop_name_col == matched_crop else 0
+    for f_idx, m_info in enumerate(forward_months):
+        m_num = m_info["month"]
+        quarter = (m_num - 1) // 3 + 1
+        m_sin = np.sin(2 * np.pi * m_num / 12.0)
+        m_cos = np.cos(2 * np.pi * m_num / 12.0)
+        lag_12_val = get_year_ago_price(m_num)
+        
+        # Rolling estimates
+        window_3 = [curr_lag1, curr_lag2, curr_lag3]
+        roll_3 = float(np.mean(window_3))
+        roll_std_3 = float(np.std(window_3))
+        
+        # 6 and 12 month means approximated using available series
+        roll_6 = float(np.mean(list(recent_prices[-3:]) + window_3))
+        roll_12 = float(np.mean(recent_prices[-12:])) if len(recent_prices) >= 12 else roll_6
+        
+        mom_3 = curr_lag1 - curr_lag3
+        ratio_12 = curr_lag1 / (roll_12 + 1e-5)
+        
+        row_dict = {
+            'lag_1': curr_lag1,
+            'lag_2': curr_lag2,
+            'lag_3': curr_lag3,
+            'lag_12': lag_12_val,
+            'rolling_mean_3': roll_3,
+            'rolling_std_3': roll_std_3,
+            'rolling_mean_6': roll_6,
+            'rolling_mean_12': roll_12,
+            'momentum_3': mom_3,
+            'ratio_to_12m': ratio_12,
+            'month': m_num,
+            'quarter': quarter,
+            'month_sin': m_sin,
+            'month_cos': m_cos
+        }
+        
+        # One-hot encoding for crops
+        for c_col in crop_dummy_cols:
+            row_dict[c_col] = 1 if c_col == f"crop_{matched_crop}" else 0
             
-    df_feat = pd.DataFrame([feat_dict])
-    # Ensure all feature columns in correct order
-    for col in feature_cols:
-        if col not in df_feat.columns:
-            df_feat[col] = 0
-    df_feat = df_feat[feature_cols]
-    
-    # Model monthly predicted step
-    base_pred_month = float(model.predict(df_feat)[0])
-    
-    # Compute daily trajectory for horizon_days
-    # The trajectory smoothly connects current reported price with the model's forward projection
-    daily_delta = (base_pred_month - live_price) / 30.0  # Daily rate of change towards target
-    # Cap excessive daily swing to realistic market rate (max 1% per day)
-    max_daily_rate = live_price * 0.008
-    daily_delta = max(-max_daily_rate, min(max_daily_rate, daily_delta))
-    
-    forecast_points = []
-    prices_projected = []
-    
-    # Uncertainty scales with sqrt(day)
-    base_uncertainty = min(live_price * 0.08, rmse * 0.25)
-    
-    for day in range(1, horizon_days + 1):
-        target_day = ref_dt + timedelta(days=day)
-        proj_p = round(live_price + (daily_delta * day), 2)
-        prices_projected.append(proj_p)
-        day_unc = round(base_uncertainty * np.sqrt(day / 2.0), 2)
+        df_row = pd.DataFrame([row_dict])
+        for col in feature_cols:
+            if col not in df_row.columns:
+                df_row[col] = 0
+        df_row = df_row[feature_cols]
         
-        forecast_points.append({
-            "day": day,
-            "date": target_day.strftime("%Y-%m-%d"),
-            "display_date": target_day.strftime("%d %b"),
-            "predicted_price": proj_p,
-            "range_low": max(1.0, round(proj_p - day_unc, 2)),
-            "range_high": round(proj_p + day_unc, 2)
+        pred_p = float(model.predict(df_row)[0])
+        pred_p = round(max(100.0, pred_p), 2)
+        
+        # Prediction interval based on test RMSE
+        # Broadens slightly for forward steps (f_idx + 1)
+        step_uncertainty = round(rmse * (1.0 + (0.15 * f_idx)), 2)
+        low_p = round(max(1.0, pred_p - step_uncertainty), 2)
+        high_p = round(pred_p + step_uncertainty, 2)
+        
+        monthly_forecast.append({
+            "step": f_idx + 1,
+            "period": m_info["label"],
+            "display_month": m_info["short_label"],
+            "year": m_info["year"],
+            "month_num": m_num,
+            "predicted_modal_price": pred_p,
+            "range_low": low_p,
+            "range_high": high_p,
+            "uncertainty_margin": step_uncertainty
         })
         
-    final_pred = prices_projected[-1]
-    net_pct_change = ((final_pred - live_price) / live_price) * 100.0
+        # Advance autoregressive state
+        curr_lag3 = curr_lag2
+        curr_lag2 = curr_lag1
+        curr_lag1 = pred_p
+        
+    next_month_pred = monthly_forecast[0]["predicted_modal_price"]
+    net_pct_change = round(((next_month_pred - live_price) / live_price) * 100.0, 2)
     
-    if net_pct_change > 1.2:
+    if net_pct_change > 1.5:
         trend = "Increasing"
-    elif net_pct_change < -1.2:
+    elif net_pct_change < -1.5:
         trend = "Decreasing"
     else:
         trend = "Stable"
         
-    # Decision Support: "Sell Now or Wait"
-    historical_median = float(state_series[price_col].median()) if len(state_series) > 0 else live_price
-    price_position_ratio = live_price / historical_median
+    # Decision Support (Phase 17)
+    # Permitted statuses: "Potentially favorable to sell now", "Potentially favorable to wait", "Insufficient data"
+    hist_median = float(np.median(recent_prices))
+    price_to_median = live_price / (hist_median + 1e-5)
     
     if trend == "Increasing":
-        recommendation = "Potentially consider waiting"
-        if price_position_ratio < 0.95:
-            rationale = f"Current price (₹{live_price:,.0f}) is below historical median (₹{historical_median:,.0f}) and AI forecast indicates an upward trajectory (+{net_pct_change:.1f}%) over the next {horizon_days} days."
-        else:
-            rationale = f"AI forecast projects favorable upward price momentum (+{net_pct_change:.1f}%) in coming days. Farmers with dry storage may consider monitoring for peak rates."
-        favorable_start = (ref_dt + timedelta(days=max(4, horizon_days - 3))).strftime("%d %b")
-        favorable_end = (ref_dt + timedelta(days=horizon_days)).strftime("%d %b %Y")
-        favorable_window = f"{favorable_start} – {favorable_end}"
+        recommendation = "Potentially favorable to wait"
+        rationale = f"Monthly ML projection indicates an upward price movement (+{net_pct_change}%) into October 2026 (projected ₹{next_month_pred:,.0f}/q). If dry storage is available, monitoring upcoming market arrivals before selling may be advantageous."
     elif trend == "Decreasing":
-        recommendation = "Current price appears relatively strong"
-        rationale = f"Current reported price (₹{live_price:,.0f}) is strong, while short-term projection indicates a slight softening (-{abs(net_pct_change):.1f}%). Consider selling now to lock in reported mandi prices."
-        favorable_window = f"Immediate (next 1–3 days)"
+        recommendation = "Potentially favorable to sell now"
+        rationale = f"Current reported price (₹{live_price:,.0f}/q) is relatively strong, while model indicates seasonal post-monsoon easing (-{abs(net_pct_change)}%) into October 2026. Selling promptly locks in reported mandi rates."
     else:
-        recommendation = "Market appears relatively stable"
-        rationale = f"Price is projected to remain steady (within ±1.2%) around ₹{live_price:,.0f}. Decision depends on immediate cash requirements and holding/transportation costs."
-        favorable_window = "Flexible throughout the coming week"
+        recommendation = "Potentially favorable to sell now" if price_to_median >= 1.0 else "Potentially favorable to wait"
+        rationale = f"Projected price movement remains relatively stable (within ±1.5%) around ₹{live_price:,.0f}/q. Decision should depend on storage cost, transportation expense, and immediate liquidity needs."
         
     return {
+        "success": True,
+        "status": "success",
         "commodity": commodity,
         "matched_crop": matched_crop,
         "state": state,
-        "matched_state": matched_state,
+        "matched_state": used_state,
         "current_price": live_price,
         "unit": "₹/quintal",
-        "horizon_days": horizon_days,
         "trend": trend,
-        "predicted_change_pct": round(net_pct_change, 2),
-        "forecast": forecast_points,
-        "expected_range": {
-            "low": forecast_points[-1]["range_low"],
-            "high": forecast_points[-1]["range_high"]
+        "predicted_change_pct": net_pct_change,
+        
+        # Daily forecast strictly adheres to Phase 15
+        "daily_forecast": None,
+        "daily_forecast_message": daily_disclaimer,
+        "can_forecast_daily": False,
+        
+        # Scientifically valid monthly forecast
+        "monthly_forecast": monthly_forecast,
+        "next_month_projection": {
+            "period": monthly_forecast[0]["period"],
+            "predicted_price": monthly_forecast[0]["predicted_modal_price"],
+            "range_low": monthly_forecast[0]["range_low"],
+            "range_high": monthly_forecast[0]["range_high"]
         },
         "decision_support": {
             "recommendation": recommendation,
             "rationale": rationale,
-            "favorable_window": favorable_window
+            "market_context": f"Current price is {abs(round((price_to_median - 1.0) * 100, 1))}% {'above' if price_to_median >= 1.0 else 'below'} the 10-year historical median of ₹{hist_median:,.0f}/q."
         },
         "model_info": {
-            "algorithm": artifact.get('best_model_name', 'Hist_Gradient_Boosting'),
-            "evaluation_r2": round(artifact.get('r2', 0.92), 4),
-            "evaluation_mae": round(artifact.get('mae', 414.5), 2),
-            "source": "State-level 10-year chronological time-series model combined with current mandi baseline"
+            "algorithm": model_name,
+            "test_r2": r2,
+            "test_rmse": rmse,
+            "test_mae": mae,
+            "temporal_granularity": "Monthly State-Level Time Series (10 Years)",
+            "validation_split": "Chronological holdout (2025–2026 unseen)"
         },
-        "disclaimer": "AI-based estimate for decision support. Actual market prices may vary depending on daily arrivals, moisture, grade, and market conditions. Historical patterns do not guarantee future prices."
+        "disclaimer": "AI-based estimate for decision support. Actual market prices may vary depending on daily arrivals, moisture, grade, and market conditions. Historical patterns do not guarantee future prices. KisanSaathi does not guarantee profit or exact selling date."
     }
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--commodity', type=str, default='Wheat')
     parser.add_argument('--state', type=str, default='Uttar Pradesh')
-    parser.add_argument('--price', type=float, default=2450.0)
+    parser.add_argument('--price', type=float, default=None)
     args = parser.parse_args()
     
     res = predict_crop_price(args.commodity, state=args.state, current_price=args.price)

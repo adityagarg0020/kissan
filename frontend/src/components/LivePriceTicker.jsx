@@ -61,6 +61,11 @@ export default function LivePriceTicker() {
                   <Minus size={13} /> Steady
                 </span>
               )}
+              {(item.movement === 'none' || !item.movement) && (
+                <span className="ticker-badge neutral" title="Insufficient previous session data">
+                  —
+                </span>
+              )}
 
               <span className="ticker-date">{item.date}</span>
             </div>

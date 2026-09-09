@@ -183,10 +183,10 @@ class DataService {
 
   // Find historical crop name corresponding to a mandi commodity
   matchHistoricalCrop(commodity) {
-    if (!commodity) return 'Wheat';
+    if (!commodity) return null;
     const cLower = commodity.trim().toLowerCase();
 
-    // Direct match check
+    // Direct match check against crop crosswalk
     for (const histCrop of Object.keys(this.cropCrosswalk)) {
       if (histCrop.toLowerCase() === cLower) {
         return histCrop;
@@ -206,7 +206,7 @@ class DataService {
         return hc;
       }
     }
-    return 'Wheat'; // Safe fallback
+    return null; // Return null when crop is unmapped or unknown
   }
 
   // Cascading Filter Options
@@ -263,14 +263,15 @@ class DataService {
 
       if (latestRows.length > 0) {
         const avgLatest = Math.round(latestRows.reduce((sum, r) => sum + r.modal_price, 0) / latestRows.length);
-        let movement = 'neutral';
-        let diff = 0;
+        let movement = 'none'; // Default to 'none' if no comparison basis exists
+        let diff = null;
 
         if (prevRows.length > 0) {
           const avgPrev = Math.round(prevRows.reduce((sum, r) => sum + r.modal_price, 0) / prevRows.length);
           diff = avgLatest - avgPrev;
           if (diff > 10) movement = 'up';
           else if (diff < -10) movement = 'down';
+          else movement = 'neutral';
         }
 
         tickerItems.push({
@@ -278,7 +279,7 @@ class DataService {
           modal_price: avgLatest,
           unit: '₹/q',
           date: '08/09/2026',
-          movement: movement, // 'up' | 'down' | 'neutral'
+          movement: movement, // 'up' | 'down' | 'neutral' | 'none'
           change: diff,
           markets_count: latestRows.length
         });

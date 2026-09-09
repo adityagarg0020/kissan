@@ -264,7 +264,7 @@ export default function HistoricalPage() {
           </div>
 
           {/* State-Wise Ranking Comparison Table */}
-          {stateRanking?.rankings && (
+          {(stateRanking?.rankings || stateRanking?.ranking) && (
             <div className="card">
               <div className="card-header">
                 <div>
@@ -272,7 +272,7 @@ export default function HistoricalPage() {
                     🏆 State-Wise 10-Year Price Ranking ({trend?.historical_crop})
                   </div>
                   <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
-                    Comparison across {stateRanking.total_states} producing states
+                    Comparison across {stateRanking.total_states || stateRanking.total_states_compared || (stateRanking.rankings || stateRanking.ranking).length} producing states
                   </div>
                 </div>
 
@@ -307,16 +307,16 @@ export default function HistoricalPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {stateRanking.rankings.map((st) => (
+                    {(stateRanking.rankings || stateRanking.ranking || []).map((st, idx) => (
                       <tr key={st.state}>
                         <td style={{ fontWeight: 700, color: 'var(--text-muted)' }}>
-                          #{st.rank}
+                          #{st.rank || idx + 1}
                         </td>
                         <td style={{ fontWeight: 700, color: 'var(--primary-dark)' }}>
                           {st.state}
                         </td>
                         <td style={{ textAlign: 'right', fontWeight: 800, color: 'var(--primary)', fontFamily: 'var(--font-display)', fontSize: '1.05rem' }}>
-                          ₹{st.average_price.toLocaleString('en-IN')}<span style={{ fontSize: '0.75rem', fontWeight: 500 }}>/q</span>
+                          ₹{st.average_price ? st.average_price.toLocaleString('en-IN') : 'N/A'}<span style={{ fontSize: '0.75rem', fontWeight: 500 }}>/q</span>
                         </td>
                         <td style={{ textAlign: 'right', color: 'var(--text-muted)', fontSize: '0.86rem' }}>
                           ₹{st.min_price}
@@ -325,7 +325,7 @@ export default function HistoricalPage() {
                           ₹{st.max_price}
                         </td>
                         <td style={{ textAlign: 'right', color: 'var(--text-muted)', fontSize: '0.82rem' }}>
-                          {st.observations}
+                          {st.observations || st.record_count}
                         </td>
                       </tr>
                     ))}

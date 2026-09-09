@@ -9,7 +9,12 @@ class HistoricalService {
   // Get 10-Year Historical Price Trend Line
   getHistoricalTrend(commodity, state = 'All India') {
     const histCrop = dataService.matchHistoricalCrop(commodity);
-    const targetState = state ? dataService.cropCrosswalk && state : 'All India';
+    if (!histCrop) {
+      return {
+        error: `Crop '${commodity}' not found in 10-year historical dataset.`,
+        available_crops: [...new Set(dataService.historicalRecords.map(r => r.crop))].sort()
+      };
+    }
 
     let records = dataService.historicalRecords.filter(r =>
       r.crop.toLowerCase() === histCrop.toLowerCase() &&
@@ -17,7 +22,6 @@ class HistoricalService {
     );
 
     if (records.length < 12 && state.toLowerCase() !== 'all india') {
-      // Fallback to All India for better trend depth
       records = dataService.historicalRecords.filter(r =>
         r.crop.toLowerCase() === histCrop.toLowerCase() &&
         r.state.toLowerCase() === 'all india'
@@ -26,7 +30,6 @@ class HistoricalService {
 
     records.sort((a, b) => a.date.localeCompare(b.date));
 
-    // Compute basic summary stats
     const prices = records.map(r => r.modal_price);
     const mean = prices.length > 0 ? Math.round(prices.reduce((a, b) => a + b, 0) / prices.length) : 0;
     const min = prices.length > 0 ? Math.min(...prices) : 0;
@@ -58,6 +61,10 @@ class HistoricalService {
   // Best Historical Month for a Crop + State
   getBestHistoricalMonth(commodity, state = 'All India') {
     const histCrop = dataService.matchHistoricalCrop(commodity);
+    if (!histCrop) {
+      return null;
+    }
+
     let records = dataService.historicalRecords.filter(r =>
       r.crop.toLowerCase() === histCrop.toLowerCase() &&
       (r.state.toLowerCase() === state.toLowerCase() || r.canonical_state.toLowerCase() === state.toLowerCase())
@@ -80,13 +87,14 @@ class HistoricalService {
 
     const monthlyStats = monthBuckets.map((prices, idx) => {
       const count = prices.length;
+      // Absolute Rule 11: Missing values must remain missing; do not convert to 0
       if (count === 0) {
         return {
           month_number: idx + 1,
           month_name: MONTH_NAMES[idx],
-          average_price: 0,
-          max_price: 0,
-          min_price: 0,
+          average_price: null,
+          max_price: null,
+          min_price: null,
           observation_count: 0
         };
       }
@@ -103,8 +111,8 @@ class HistoricalService {
       };
     });
 
-    // Identify month with highest average price
-    const validMonths = monthlyStats.filter(m => m.observation_count > 0);
+    // Best month: Highest average across all available years (NOT single outlier peak)
+    const validMonths = monthlyStats.filter(m => m.observation_count > 0 && m.average_price !== null);
     let bestMonth = validMonths.length > 0 ? validMonths[0] : null;
     for (const m of validMonths) {
       if (m.average_price > bestMonth.average_price) {
@@ -112,7 +120,7 @@ class HistoricalService {
       }
     }
 
-    // Identify month with highest recorded individual price spike
+    // Single highest peak record
     let highestPeakMonth = validMonths.length > 0 ? validMonths[0] : null;
     for (const m of validMonths) {
       if (m.max_price > highestPeakMonth.max_price) {
@@ -129,7 +137,7 @@ class HistoricalService {
         month_name: bestMonth.month_name,
         average_price: bestMonth.average_price,
         unit: '₹/quintal',
-        metric_explanation: 'Historically highest average price across all recorded years',
+        metric_explanation: 'Historically highest average modal price across all recorded years',
         observations_analyzed: bestMonth.observation_count
       } : null,
       highest_peak_month: highestPeakMonth ? {
@@ -146,6 +154,10 @@ class HistoricalService {
   // State-Wise Price Comparison & Ranking
   getStateWiseAnalysis(commodity, sortBy = 'highest_average') {
     const histCrop = dataService.matchHistoricalCrop(commodity);
+    if (!histCrop) {
+      return null;
+    }
+
     const records = dataService.historicalRecords.filter(r =>
       r.crop.toLowerCase() === histCrop.toLowerCase() &&
       r.state.toLowerCase() !== 'all india'
@@ -177,6 +189,7 @@ class HistoricalService {
       return {
         state,
         record_count: n,
+        observations: n,
         average_price: avg,
         max_price: max,
         min_price: min,
@@ -198,12 +211,18 @@ class HistoricalService {
       stateSummaries.sort((a, b) => b.average_price - a.average_price);
     }
 
+    // Assign explicit rank
+    stateSummaries.forEach((s, idx) => {
+      s.rank = idx + 1;
+    });
+
     const topState = stateSummaries.length > 0 ? stateSummaries[0] : null;
 
     return {
       commodity,
       historical_crop: histCrop,
       sort_applied: sortBy,
+      total_states: stateSummaries.length,
       total_states_compared: stateSummaries.length,
       historical_best_insight: topState ? {
         state: topState.state,
@@ -213,7 +232,8 @@ class HistoricalService {
         period: '2016–2026',
         records: topState.record_count
       } : null,
-      ranking: stateSummaries,
+      rankings: stateSummaries,
+      ranking: stateSummaries, // Backward compatibility
       disclaimer: 'Historical patterns do not guarantee future prices.'
     };
   }
@@ -221,6 +241,10 @@ class HistoricalService {
   // Seasonal Price Analysis
   getSeasonalAnalysis(commodity, state = 'All India') {
     const histCrop = dataService.matchHistoricalCrop(commodity);
+    if (!histCrop) {
+      return null;
+    }
+
     let records = dataService.historicalRecords.filter(r =>
       r.crop.toLowerCase() === histCrop.toLowerCase() &&
       (r.state.toLowerCase() === state.toLowerCase() || r.canonical_state.toLowerCase() === state.toLowerCase())
@@ -247,7 +271,7 @@ class HistoricalService {
 
     const seasonalStats = Object.entries(seasons).map(([seasonName, prices]) => {
       const n = prices.length;
-      if (n === 0) return { season: seasonName, average_price: 0, observations: 0 };
+      if (n === 0) return { season: seasonName, average_price: null, observations: 0 };
       const avg = Math.round(prices.reduce((a, b) => a + b, 0) / n);
       return {
         season: seasonName,
@@ -270,6 +294,13 @@ class HistoricalService {
   // Price Volatility & Price Anomaly Detection
   getVolatilityAndAnomaly(commodity, state = 'All India', currentPrice = null) {
     const histCrop = dataService.matchHistoricalCrop(commodity);
+    if (!histCrop) {
+      return {
+        volatility: { category: 'Unknown', cv_percentage: 0, description: 'Crop not recognized.' },
+        anomaly: { is_anomaly: false, message: 'Crop not recognized.' }
+      };
+    }
+
     let records = dataService.historicalRecords.filter(r =>
       r.crop.toLowerCase() === histCrop.toLowerCase() &&
       (r.state.toLowerCase() === state.toLowerCase() || r.canonical_state.toLowerCase() === state.toLowerCase())
@@ -286,7 +317,7 @@ class HistoricalService {
     const n = prices.length;
     if (n === 0) {
       return {
-        volatility: { category: 'Unknown', cv_pct: 0 },
+        volatility: { category: 'Unknown', cv_percentage: 0 },
         anomaly: { is_anomaly: false, message: 'Insufficient historical data for volatility assessment.' }
       };
     }

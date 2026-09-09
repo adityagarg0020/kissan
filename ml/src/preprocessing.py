@@ -19,14 +19,12 @@ def normalize_state_name(state_name):
     s = state_name.strip()
     return STATE_NAME_MAPPING.get(s, s)
 
-def clean_outliers_iqr(df, price_col='Mandi Modal Price (AgMarknet)', group_cols=['Crop']):
+def compute_outlier_bounds(df_train, price_col='Mandi Modal Price (AgMarknet)', group_cols=['Crop']):
     """
-    Clips extreme data-entry typos using group-level IQR bounds.
-    Preserves normal market volatility while suppressing anomalous data entry errors (e.g. 80,000 for Moong).
+    Computes IQR clipping bounds strictly on training data to prevent data leakage.
     """
-    cleaned = df.copy()
-    
-    def clip_group(group):
+    bounds = {}
+    for crop, group in df_train.groupby('Crop'):
         q1 = group[price_col].quantile(0.25)
         q3 = group[price_col].quantile(0.75)
         iqr = q3 - q1
@@ -36,11 +34,20 @@ def clean_outliers_iqr(df, price_col='Mandi Modal Price (AgMarknet)', group_cols
         else:
             upper = q3 + 3.5 * iqr
             lower = max(1.0, q1 - 2.5 * iqr)
-        group[price_col] = group[price_col].clip(lower=lower, upper=upper)
-        return group
+        bounds[crop] = (lower, upper)
+    return bounds
 
-    cleaned = cleaned.groupby(group_cols, group_keys=False).apply(clip_group)
-    return cleaned
+def apply_outlier_bounds(df, bounds, price_col='Mandi Modal Price (AgMarknet)'):
+    """
+    Applies training-derived bounds to clip price outliers across any split.
+    """
+    df_clipped = df.copy()
+    for crop, (lower, upper) in bounds.items():
+        mask = df_clipped['Crop'] == crop
+        if mask.any():
+            df_clipped.loc[mask, price_col] = df_clipped.loc[mask, price_col].clip(lower=lower, upper=upper)
+    return df_clipped
+
 
 def add_calendar_features(df):
     """

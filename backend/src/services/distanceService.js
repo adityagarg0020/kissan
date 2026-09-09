@@ -92,10 +92,6 @@ class DistanceService {
       if (originLat && originLng && mandiDistrictCoord) {
         distanceKm = Math.round(this.calculateHaversine(originLat, originLng, mandiDistrictCoord[0], mandiDistrictCoord[1]) * 10) / 10;
         coordFound = true;
-      } else if (userDistrict && mandi.district.toLowerCase() === userDistrict.toLowerCase()) {
-        // Same district fallback distance heuristic
-        distanceKm = 8.0;
-        coordFound = false;
       }
 
       const burden = this.classifyTransportationBurden(distanceKm);

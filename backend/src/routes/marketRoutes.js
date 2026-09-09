@@ -73,7 +73,7 @@ router.get('/nearby', (req, res) => {
   try {
     const { commodity, lat, lng, district, max_radius, limit } = req.query;
     const nearby = distanceService.findNearbyMandis({
-      commodity: commodity || 'Wheat',
+      commodity: commodity || null,
       userLat: lat ? parseFloat(lat) : null,
       userLng: lng ? parseFloat(lng) : null,
       userDistrict: district || null,
@@ -122,22 +122,34 @@ router.get('/best-nearby', (req, res) => {
 router.get('/history', (req, res) => {
   try {
     const { commodity, state } = req.query;
-    const trend = historicalService.getHistoricalTrend(commodity || 'Wheat', state || 'All India');
+    if (!commodity) {
+      return res.status(400).json({ success: false, error: 'commodity query parameter is required' });
+    }
+    const trend = historicalService.getHistoricalTrend(commodity, state || 'All India');
+    if (trend.error) {
+      return res.status(404).json({ success: false, ...trend });
+    }
     res.json({ success: true, ...trend });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
 });
 
-// 9. Comprehensive Historical Intelligence (Best Month, State Ranking, Heatmap, Season, Volatility, Anomaly)
+// 9. Comprehensive Historical Intelligence
 router.get('/historical-analysis', (req, res) => {
   try {
     const { commodity, state, current_price, sort_by } = req.query;
-    const crop = commodity || 'Wheat';
+    if (!commodity) {
+      return res.status(400).json({ success: false, error: 'commodity query parameter is required' });
+    }
+    const crop = commodity.trim();
     const st = state || 'All India';
     const cPrice = current_price ? parseFloat(current_price) : null;
 
     const trend = historicalService.getHistoricalTrend(crop, st);
+    if (trend.error) {
+      return res.status(404).json({ success: false, ...trend });
+    }
     const bestMonth = historicalService.getBestHistoricalMonth(crop, st);
     const stateRanking = historicalService.getStateWiseAnalysis(crop, sort_by || 'highest_average');
     const seasonal = historicalService.getSeasonalAnalysis(crop, st);
@@ -163,16 +175,22 @@ router.get('/historical-analysis', (req, res) => {
   }
 });
 
-// 10. AI Price Prediction & Sell Now / Wait Decision Support
+// 10. AI Price Prediction & Sell Decision Support
 router.post('/predict-price', async (req, res) => {
   try {
     const { commodity, state, current_price, horizon_days } = req.body;
+    if (!commodity) {
+      return res.status(400).json({ success: false, error: 'commodity parameter is required in request body' });
+    }
     const forecast = await predictionService.getPrediction({
-      commodity: commodity || 'Wheat',
-      state: state || 'Uttar Pradesh',
+      commodity,
+      state: state || 'All India',
       currentPrice: current_price ? parseFloat(current_price) : null,
       horizonDays: horizon_days ? parseInt(horizon_days, 10) : 7
     });
+    if (forecast.status === 'failed' || forecast.success === false) {
+      return res.status(forecast.status_code || 404).json(forecast);
+    }
     res.json({ success: true, ...forecast });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -182,12 +200,18 @@ router.post('/predict-price', async (req, res) => {
 router.get('/forecast', async (req, res) => {
   try {
     const { commodity, state, current_price, horizon_days } = req.query;
+    if (!commodity) {
+      return res.status(400).json({ success: false, error: 'commodity query parameter is required' });
+    }
     const forecast = await predictionService.getPrediction({
-      commodity: commodity || 'Wheat',
-      state: state || 'Uttar Pradesh',
+      commodity,
+      state: state || 'All India',
       currentPrice: current_price ? parseFloat(current_price) : null,
       horizonDays: horizon_days ? parseInt(horizon_days, 10) : 7
     });
+    if (forecast.status === 'failed' || forecast.success === false) {
+      return res.status(forecast.status_code || 404).json(forecast);
+    }
     res.json({ success: true, ...forecast });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });

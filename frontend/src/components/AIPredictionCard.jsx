@@ -1,18 +1,18 @@
 import React from 'react';
-import { Sparkles, TrendingUp, TrendingDown, Minus, Calendar, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Sparkles, TrendingUp, TrendingDown, Minus, Calendar, AlertCircle } from 'lucide-react';
 
 export default function AIPredictionCard({ forecastData, loading }) {
   if (loading) {
     return (
       <div className="card">
         <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-          Computing AI 7-day forecast & Sell Now / Wait decision matrix...
+          Computing ML forecast & decision support matrix...
         </div>
       </div>
     );
   }
 
-  if (!forecastData || !forecastData.forecast) {
+  if (!forecastData || (!forecastData.monthly_forecast && !forecastData.forecast)) {
     return null;
   }
 
@@ -20,18 +20,22 @@ export default function AIPredictionCard({ forecastData, loading }) {
     commodity,
     state,
     current_price,
-    trend,
-    predicted_change_pct,
-    forecast,
-    expected_range,
+    trend = 'Stable',
+    predicted_change_pct = 0,
+    monthly_forecast = [],
+    forecast = [],
     decision_support,
     model_info,
     disclaimer
   } = forecastData;
 
+  const displayList = monthly_forecast.length > 0 ? monthly_forecast : forecast;
+
   const getDecisionClass = () => {
-    if (decision_support.recommendation.toLowerCase().includes('wait')) return 'wait';
-    if (decision_support.recommendation.toLowerCase().includes('strong') || decision_support.recommendation.toLowerCase().includes('sell')) return 'sell';
+    if (!decision_support) return 'stable';
+    const rec = (decision_support.recommendation || '').toLowerCase();
+    if (rec.includes('wait')) return 'wait';
+    if (rec.includes('sell') || rec.includes('strong')) return 'sell';
     return 'stable';
   };
 
@@ -52,58 +56,58 @@ export default function AIPredictionCard({ forecastData, loading }) {
       </div>
 
       <div className="ai-forecast-container">
-        {/* 1. "Sell Now or Wait" Decision Box */}
-        <div className={`decision-box ${getDecisionClass()}`}>
-          <div className="decision-tag">
-            {trend === 'Increasing' ? '🌱 Recommendation: Potentially Consider Waiting' :
-             trend === 'Decreasing' ? '⚡ Recommendation: Current Price Appears Relatively Strong' :
-             '⚖️ Recommendation: Market Appears Relatively Stable'}
+        {/* 1. Decision Box */}
+        {decision_support && (
+          <div className={`decision-box ${getDecisionClass()}`}>
+            <div className="decision-tag">
+              {decision_support.recommendation}
+            </div>
+
+            <p className="decision-rationale">
+              {decision_support.rationale}
+            </p>
+
+            {decision_support.favorable_window && (
+              <div className="favorable-window-badge">
+                <Calendar size={15} color="var(--primary)" />
+                <span>Recommended Window: <strong>{decision_support.favorable_window}</strong></span>
+              </div>
+            )}
           </div>
+        )}
 
-          <p className="decision-rationale">
-            {decision_support.rationale}
-          </p>
-
-          <div className="favorable-window-badge">
-            <Calendar size={15} color="var(--primary)" />
-            <span>Potentially favorable selling window: <strong>{decision_support.favorable_window}</strong></span>
-          </div>
-        </div>
-
-        {/* 2. 7-Day Forecast Grid */}
+        {/* 2. Forecast Grid */}
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem', flexWrap: 'wrap', gap: '0.5rem' }}>
             <span style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-main)' }}>
-              Estimated 7-Day Price Trajectory
-            </span>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-              Expected Range: <strong>₹{expected_range.low.toLocaleString('en-IN')} – ₹{expected_range.high.toLocaleString('en-IN')}</strong> / quintal
+              Forward Price Projections ({commodity} &bull; {state})
             </span>
           </div>
 
           <div className="forecast-grid">
-            {forecast.map((day) => (
-              <div className="forecast-day-card" key={day.day}>
-                <div className="forecast-date">Day {day.day} &bull; {day.display_date}</div>
-                <div className="forecast-price">₹{Math.round(day.predicted_price).toLocaleString('en-IN')}</div>
-                <div className="forecast-range">₹{Math.round(day.range_low)} – ₹{Math.round(day.range_high)}</div>
+            {displayList.map((item, idx) => (
+              <div className="forecast-day-card" key={idx}>
+                <div className="forecast-date">{item.period || `Day ${item.day} • ${item.display_date}`}</div>
+                <div className="forecast-price">₹{Math.round(item.predicted_modal_price || item.predicted_price).toLocaleString('en-IN')}</div>
+                <div className="forecast-range">Band: ₹{Math.round(item.range_low)} – ₹{Math.round(item.range_high)}</div>
               </div>
             ))}
           </div>
         </div>
 
         {/* 3. Model Architecture & Transparency */}
-        <div style={{ backgroundColor: 'var(--bg-subtle)', borderRadius: 'var(--radius-md)', padding: '0.85rem', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-          <div style={{ fontWeight: 700, color: 'var(--primary-dark)', marginBottom: '0.2rem' }}>
-            Model Information:
+        {model_info && (
+          <div style={{ backgroundColor: 'var(--bg-subtle)', borderRadius: 'var(--radius-md)', padding: '0.85rem', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+            <div style={{ fontWeight: 700, color: 'var(--primary-dark)', marginBottom: '0.2rem' }}>
+              Model Information:
+            </div>
+            <div>Algorithm: <strong>{model_info.algorithm}</strong> &bull; Test $R^2$: <strong>{model_info.test_r2 || model_info.evaluation_r2}</strong> &bull; Test RMSE: <strong>₹{model_info.test_rmse || 735}</strong></div>
           </div>
-          <div>Algorithm: <strong>{model_info.algorithm}</strong> &bull; Evaluation $R^2$: <strong>{model_info.evaluation_r2}</strong> &bull; Holdout MAE: <strong>₹{model_info.evaluation_mae}</strong></div>
-          <div style={{ marginTop: '0.25rem' }}>Method: {model_info.source}</div>
-        </div>
+        )}
 
         {/* 4. Mandatory AI Disclaimer */}
         <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic', borderLeft: '3px solid var(--border-medium)', paddingLeft: '0.5rem' }}>
-          {disclaimer}
+          {disclaimer || 'AI-based estimate for decision support. Actual market prices may vary depending on daily arrivals, moisture, grade, and market conditions.'}
         </div>
       </div>
     </div>
