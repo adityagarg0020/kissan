@@ -2,7 +2,9 @@ const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
 
-const DATA_DIR = path.resolve(__dirname, '../../../Data');
+const DATA_DIR = fs.existsSync(path.join(process.cwd(), 'Data'))
+  ? path.join(process.cwd(), 'Data')
+  : path.resolve(__dirname, '../../../Data');
 const PROCESSED_DIR = path.join(DATA_DIR, 'processed');
 
 // Canonical state mappings to bridge naming variations
