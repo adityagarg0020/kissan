@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, Navigation, Info, AlertCircle } from 'lucide-react';
+import { MapPin, Navigation, Info, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useMarket } from '../context/MarketContext';
 import CropSelector from '../components/common/CropSelector';
 import StateSelector from '../components/common/StateSelector';
@@ -13,7 +13,8 @@ export default function NearbyMandisPage() {
     filters,
     updateFilters,
     userLocation,
-    updateLocation,
+    setManualLocation,
+    setGpsLocation,
     commodities,
     states,
     districts
@@ -21,58 +22,118 @@ export default function NearbyMandisPage() {
 
   const [locating, setLocating] = useState(false);
   const [gpsError, setGpsError] = useState(null);
+  const [gpsSuccess, setGpsSuccess] = useState(null);
   const [showWeightsInfo, setShowWeightsInfo] = useState(false);
 
   const [comparisonData, setComparisonData] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  // Use My Location (GPS)
+  // Use My Location (GPS) Flow
   const handleUseMyLocation = () => {
+    if (locating) return; // Disable duplicate clicks while detection is running
+
     if (!navigator.geolocation) {
-      setGpsError('Geolocation is not supported by your browser.');
+      setGpsError('Your browser does not support location detection. Please select your location manually.');
       return;
     }
 
     setLocating(true);
     setGpsError(null);
+    setGpsSuccess(null);
 
     navigator.geolocation.getCurrentPosition(
-      (position) => {
+      async (position) => {
         const lat = Math.round(position.coords.latitude * 10000) / 10000;
         const lng = Math.round(position.coords.longitude * 10000) / 10000;
-        setLocating(false);
 
-        updateLocation({
-          lat,
-          lng,
-          district: userLocation.district || 'Agra',
-          state: userLocation.state || 'Uttar Pradesh',
-          method: 'GPS'
-        });
+        try {
+          // Reverse geocode coordinates via backend service
+          const res = await fetch(`/api/market/reverse-geocode?lat=${lat}&lng=${lng}`);
+          const geoData = await res.json();
+
+          if (geoData.success && geoData.resolved) {
+            setGpsLocation({
+              lat,
+              lng,
+              district: geoData.district,
+              state: geoData.state,
+              city: geoData.city,
+              displayName: geoData.display_name,
+              matchedInDataset: geoData.matched_in_dataset
+            });
+            setGpsSuccess(`Location detected: ${geoData.display_name}`);
+          } else {
+            // Geocoding succeeded but coordinates cannot be named with certainty
+            setGpsLocation({
+              lat,
+              lng,
+              district: null,
+              state: null,
+              city: null,
+              displayName: 'Current GPS location (Location name unavailable)',
+              matchedInDataset: false
+            });
+            setGpsSuccess('Location detected from device GPS coordinates.');
+          }
+        } catch (err) {
+          console.warn('Reverse geocoding request error:', err);
+          setGpsLocation({
+            lat,
+            lng,
+            district: null,
+            state: null,
+            city: null,
+            displayName: 'Current GPS location (Location name unavailable)',
+            matchedInDataset: false
+          });
+          setGpsSuccess('Location coordinates acquired.');
+        } finally {
+          setLocating(false);
+          setTimeout(() => setGpsSuccess(null), 5000);
+        }
       },
       (error) => {
         setLocating(false);
-        let msg = 'Could not acquire GPS coordinates.';
-        if (error.code === 1) msg = 'Location permission was denied. Please select your district manually below.';
-        else if (error.code === 2) msg = 'Location position unavailable. Please choose district manually.';
-        else if (error.code === 3) msg = 'Location request timed out. Please choose district manually.';
+        let msg = 'Unable to determine your current location. Please try again or select manually.';
+        if (error.code === 1) {
+          msg = 'Location permission denied. Please select your location manually.';
+        } else if (error.code === 2) {
+          msg = 'Unable to determine your current location. Please try again or select manually.';
+        } else if (error.code === 3) {
+          msg = 'Location request timed out. Please try again.';
+        }
         setGpsError(msg);
       },
-      { timeout: 10000, maximumAge: 60000 }
+      { timeout: 12000, maximumAge: 30000, enableHighAccuracy: true }
     );
   };
 
-  // Fetch Nearby Mandis & Best Mandi Recommendation
+  // Fetch Nearby Mandis & Recommendation based on active location mode
   useEffect(() => {
     if (!filters.commodity) return;
     setLoading(true);
 
+    const isGps = userLocation.mode === 'gps';
     const params = new URLSearchParams({
-      commodity: filters.commodity,
-      district: userLocation.district || filters.district || 'Agra',
-      lat: userLocation.lat ? userLocation.lat.toString() : '',
-      lng: userLocation.lng ? userLocation.lng.toString() : ''
+      commodity: filters.commodity
     });
+
+    if (isGps && userLocation.lat && userLocation.lng) {
+      // In GPS mode, strictly use actual GPS coordinates
+      params.append('lat', userLocation.lat.toString());
+      params.append('lng', userLocation.lng.toString());
+      if (userLocation.district) {
+        params.append('district', userLocation.district);
+      }
+    } else {
+      // In Manual mode, use selected district and manual coordinates if present
+      const manualDistrict = userLocation.district || filters.district || 'Agra';
+      params.append('district', manualDistrict);
+      if (userLocation.lat && userLocation.lng) {
+        params.append('lat', userLocation.lat.toString());
+        params.append('lng', userLocation.lng.toString());
+      }
+    }
 
     fetch(`/api/market/compare?${params.toString()}`)
       .then(res => res.json())
@@ -88,11 +149,20 @@ export default function NearbyMandisPage() {
         console.error('Error fetching nearby mandis:', err);
         setLoading(false);
       });
-  }, [filters.commodity, userLocation.district, userLocation.lat, userLocation.lng, filters.district]);
+  }, [
+    filters.commodity,
+    userLocation.mode,
+    userLocation.lat,
+    userLocation.lng,
+    userLocation.district,
+    userLocation.state,
+    filters.district
+  ]);
 
   const bestMandi = comparisonData?.best_mandi;
   const comparisonList = comparisonData?.comparison || [];
   const spreadAnalysis = comparisonData?.spread_analysis;
+  const isGpsMode = userLocation.mode === 'gps';
 
   return (
     <div className="nearby-mandis-page">
@@ -116,35 +186,61 @@ export default function NearbyMandisPage() {
             className="btn btn-location"
             onClick={handleUseMyLocation}
             disabled={locating}
+            style={{ minWidth: '170px' }}
           >
             <Navigation size={15} className={locating ? 'spin' : ''} />
-            {locating ? 'Detecting Location...' : '📍 Use My Location'}
+            {locating ? 'Detecting your location...' : '📍 Use My Location'}
           </button>
         </div>
 
         {gpsError && (
-          <div style={{ padding: '0.6rem 0.85rem', backgroundColor: 'var(--red-wash)', borderRadius: 'var(--radius-sm)', color: 'var(--accent-red)', fontSize: '0.84rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+          <div style={{ padding: '0.65rem 0.85rem', backgroundColor: 'var(--red-wash)', borderRadius: 'var(--radius-sm)', color: 'var(--accent-red)', fontSize: '0.84rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.45rem', border: '1px solid #ffa8a8' }}>
             <AlertCircle size={16} /> {gpsError}
           </div>
         )}
 
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem', padding: '0.75rem 1rem', backgroundColor: 'var(--bg-subtle)', borderRadius: 'var(--radius-sm)', marginBottom: '1rem' }}>
+        {gpsSuccess && (
+          <div style={{ padding: '0.65rem 0.85rem', backgroundColor: '#d8f3dc', borderRadius: 'var(--radius-sm)', color: '#2b8a3e', fontSize: '0.84rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.45rem', border: '1px solid #b2f2bb' }}>
+            <CheckCircle2 size={16} /> {gpsSuccess}
+          </div>
+        )}
+
+        {/* Unified Location Display Banner */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', padding: '0.85rem 1.15rem', backgroundColor: isGpsMode ? '#e7f5ff' : 'var(--bg-subtle)', borderRadius: 'var(--radius-sm)', marginBottom: '1.25rem', borderLeft: isGpsMode ? '4px solid #1971c2' : '4px solid var(--border-medium)' }}>
           <div>
-            <span style={{ fontSize: '0.78rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700 }}>
-              Detected Reference Location:
-            </span>
-            <div style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--primary-dark)', marginTop: '0.1rem' }}>
-              {userLocation.district ? `${userLocation.district}, ${userLocation.state}` : 'District Not Set'}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span style={{ fontSize: '0.76rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700 }}>
+                Detected Reference Location:
+              </span>
+              <span className="card-badge" style={{ backgroundColor: isGpsMode ? '#228be6' : 'var(--border-medium)', color: isGpsMode ? '#ffffff' : 'var(--text-main)', fontSize: '0.7rem', padding: '0.15rem 0.45rem' }}>
+                {isGpsMode ? '📍 GPS Mode Active' : '📍 Manual Selection Mode'}
+              </span>
+            </div>
+
+            <div style={{ fontSize: '1.15rem', fontWeight: 800, color: isGpsMode ? '#1864ab' : 'var(--primary-dark)', marginTop: '0.2rem' }}>
+              {userLocation.displayName || (userLocation.district ? `${userLocation.district}, ${userLocation.state}` : 'Location Not Set')}
             </div>
           </div>
 
-          {userLocation.lat && userLocation.lng && (
-            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-              Coordinates: {userLocation.lat}° N, {userLocation.lng}° E ({userLocation.method || 'Manual'})
-            </div>
-          )}
+          <div style={{ textAlign: 'right' }}>
+            {userLocation.lat && userLocation.lng ? (
+              <div style={{ fontSize: '0.82rem', color: isGpsMode ? '#1971c2' : 'var(--text-muted)', fontWeight: 600 }}>
+                Coordinates: {userLocation.lat}° N, {userLocation.lng}° E ({isGpsMode ? 'GPS' : 'District Center'})
+              </div>
+            ) : (
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                Coordinates: Unavailable
+              </div>
+            )}
+            {isGpsMode && (
+              <div style={{ fontSize: '0.72rem', color: '#1864ab', marginTop: '0.15rem' }}>
+                Real-time device coordinates used for distance calculation
+              </div>
+            )}
+          </div>
         </div>
 
+        {/* Filter Grid */}
         <div className="filter-grid">
           {/* Crop Selection */}
           <CropSelector
@@ -156,9 +252,9 @@ export default function NearbyMandisPage() {
 
           {/* Manual State Selection */}
           <StateSelector
-            value={userLocation.state}
+            value={userLocation.state || ''}
             onChange={(val) => {
-              updateLocation({ ...userLocation, state: val, district: '', method: 'Manual' });
+              setManualLocation({ state: val, district: '' });
             }}
             states={states}
             label="Manual State Selection"
@@ -166,9 +262,9 @@ export default function NearbyMandisPage() {
 
           {/* Manual District Selection */}
           <DistrictSelector
-            value={userLocation.district}
+            value={userLocation.district || ''}
             onChange={(val) => {
-              updateLocation({ ...userLocation, district: val, method: 'Manual' });
+              setManualLocation({ state: userLocation.state, district: val });
             }}
             districts={districts}
             disabled={!userLocation.state}
@@ -176,8 +272,8 @@ export default function NearbyMandisPage() {
           />
         </div>
 
-        <div style={{ marginTop: '0.75rem', fontSize: '0.76rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-          Note: Straight-line distance (Haversine formula) is computed using verified district market coordinates. Real transit distance depends on local road geometry.
+        <div style={{ marginTop: '0.85rem', fontSize: '0.76rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+          Note: Straight-line distance (Haversine formula) is computed using active coordinates. Real transit distance depends on local road geometry and transport routes.
         </div>
       </div>
 
@@ -247,7 +343,7 @@ export default function NearbyMandisPage() {
       {!loading && comparisonList.length === 0 && (
         <EmptyState
           title="No Nearby Mandis Found"
-          message={`No reporting mandis for ${filters.commodity} found near ${userLocation.district || 'this area'}. Try selecting an adjoining district.`}
+          message={`No reporting mandis for ${filters.commodity} found near ${userLocation.displayName || 'this area'}. Try selecting an adjoining district or widening location.`}
         />
       )}
 
@@ -257,7 +353,7 @@ export default function NearbyMandisPage() {
             All Nearby Mandis for {filters.commodity}
           </h2>
           <p className="section-subtitle">
-            Ranked by proximity and modal price. Distances represent straight-line Haversine calculations.
+            Ranked by proximity and modal price from active location ({userLocation.displayName}).
           </p>
 
           <div className="mandi-card-grid">

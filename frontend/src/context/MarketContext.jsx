@@ -11,13 +11,16 @@ export function MarketProvider({ children }) {
     market: ''
   });
 
-  // Shared farmer location
+  // Shared farmer location with explicit mode ('manual' | 'gps')
   const [userLocation, setUserLocation] = useState({
+    mode: 'manual', // 'manual' | 'gps'
     district: 'Agra',
     state: 'Uttar Pradesh',
     lat: 27.1767,
     lng: 78.0081,
-    method: 'Default'
+    city: 'Agra',
+    displayName: 'Agra, Uttar Pradesh',
+    method: 'Manual'
   });
 
   // Ticker data shared across navbar/ticker
@@ -85,8 +88,57 @@ export function MarketProvider({ children }) {
     setFilters(prev => ({ ...prev, ...newFilters }));
   };
 
+  // Switch to Manual Mode
+  const setManualLocation = ({ state, district, lat = null, lng = null }) => {
+    const dispName = district ? (state ? `${district}, ${state}` : district) : (state || 'Location Not Set');
+    setUserLocation({
+      mode: 'manual',
+      district: district || '',
+      state: state || '',
+      lat: lat,
+      lng: lng,
+      city: district || '',
+      displayName: dispName,
+      method: 'Manual'
+    });
+
+    setFilters(prev => ({
+      ...prev,
+      state: state || prev.state,
+      district: district !== undefined ? district : prev.district,
+      market: ''
+    }));
+  };
+
+  // Switch to GPS Mode
+  const setGpsLocation = ({ lat, lng, district, state, city, displayName, matchedInDataset = false }) => {
+    const disp = displayName || (district && state ? `${district}, ${state}` : 'Current GPS location (Location name unavailable)');
+
+    setUserLocation({
+      mode: 'gps',
+      lat,
+      lng,
+      district: district || null,
+      state: state || null,
+      city: city || null,
+      displayName: disp,
+      method: 'GPS'
+    });
+
+    // Only update filter dropdowns if district/state matched known options in dataset
+    if (matchedInDataset && state && district) {
+      setFilters(prev => ({
+        ...prev,
+        state,
+        district,
+        market: ''
+      }));
+    }
+  };
+
+  // General updater for backward compatibility
   const updateLocation = (newLoc) => {
-    setUserLocation(newLoc);
+    setUserLocation(prev => ({ ...prev, ...newLoc }));
     if (newLoc.district && newLoc.state) {
       setFilters(prev => ({
         ...prev,
@@ -105,6 +157,8 @@ export function MarketProvider({ children }) {
         updateFilters,
         userLocation,
         setUserLocation,
+        setManualLocation,
+        setGpsLocation,
         updateLocation,
         tickerItems,
         loadingTicker,

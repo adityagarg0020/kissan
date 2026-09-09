@@ -6,6 +6,21 @@ const recommendationService = require('../services/recommendationService');
 const historicalService = require('../services/historicalService');
 const predictionService = require('../services/predictionService');
 const alertService = require('../services/alertService');
+const geocodeService = require('../services/geocodeService');
+
+// Reverse Geocoding for GPS Location
+router.get('/reverse-geocode', async (req, res) => {
+  try {
+    const { lat, lng } = req.query;
+    if (!lat || !lng) {
+      return res.status(400).json({ success: false, error: 'lat and lng query parameters are required' });
+    }
+    const result = await geocodeService.reverseGeocode(lat, lng);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
 
 // 1. Live Price Ticker
 router.get('/ticker', (req, res) => {
