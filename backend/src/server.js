@@ -26,7 +26,7 @@ app.use((req, res, next) => {
 });
 
 // Health check
-app.get('/api/health', (req, res) => {
+const healthHandler = (req, res) => {
   res.json({
     status: 'healthy',
     timestamp: new Date().toISOString(),
@@ -35,10 +35,13 @@ app.get('/api/health', (req, res) => {
     mandi_records_count: dataService.mandiRecords.length,
     historical_records_count: dataService.historicalRecords.length
   });
-});
+};
+app.get('/api/health', healthHandler);
+app.get('/health', healthHandler);
 
-// Mount Routes
+// Mount Routes (with and without /api prefix for Vercel serverless rewrite compatibility)
 app.use('/api/market', marketRoutes);
+app.use('/market', marketRoutes);
 
 // 404 Handler
 app.use((req, res) => {
