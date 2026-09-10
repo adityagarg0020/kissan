@@ -1,7 +1,7 @@
 # 🌾 KissanSaathi
 
 > **Agricultural Market Intelligence, Price Discovery & AI Decision Support for Indian Farmers**  
-> *Developed for Smart India Hackathon (SIH Problem Statement SIH26127)*
+> *Developed for Smart India Hackathon (SIH Problem Statement SIH26132)*
 
 ---
 

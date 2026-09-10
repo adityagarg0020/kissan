@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useTranslation } from '../i18n';
 import { KeyRound, CheckCircle, AlertCircle, ArrowLeft } from 'lucide-react';
 
 export default function ResetPasswordPage() {
   const { updatePassword } = useAuth();
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   const [password, setPassword] = useState('');
@@ -18,11 +20,11 @@ export default function ResetPasswordPage() {
     setErrorMsg(null);
 
     if (password.length < 6) {
-      setErrorMsg('Password must be at least 6 characters long.');
+      setErrorMsg(t('auth.reset.lengthError', 'Password must be at least 6 characters long.'));
       return;
     }
     if (password !== confirmPassword) {
-      setErrorMsg('Passwords do not match. Please verify.');
+      setErrorMsg(t('auth.reset.mismatchError', 'Passwords do not match. Please verify.'));
       return;
     }
 
@@ -34,7 +36,7 @@ export default function ResetPasswordPage() {
         navigate('/profile', { replace: true });
       }, 2500);
     } catch (err) {
-      setErrorMsg(err.message || 'Failed to update password.');
+      setErrorMsg(err.message || t('auth.reset.updateFailed', 'Failed to update password.'));
     } finally {
       setLoading(false);
     }
@@ -58,10 +60,10 @@ export default function ResetPasswordPage() {
         </div>
 
         <h1 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--primary-dark)', margin: 0 }}>
-          Set New Password
+          {t('auth.reset.title', 'Set New Password')}
         </h1>
         <p style={{ fontSize: '0.86rem', color: 'var(--text-muted)', marginTop: '0.35rem', marginBottom: '1.5rem' }}>
-          Choose a secure new password for your KissanSaathi farmer account.
+          {t('auth.reset.subtitle', 'Choose a secure new password for your KissanSaathi farmer account.')}
         </p>
 
         {errorMsg && (
@@ -98,18 +100,18 @@ export default function ResetPasswordPage() {
             gap: '0.5rem'
           }}>
             <CheckCircle size={24} />
-            <div>Password updated successfully!</div>
-            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Redirecting to your profile...</span>
+            <div>{t('auth.reset.successMsg', 'Password updated successfully!')}</div>
+            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{t('common.status.loading', 'Redirecting to your profile...')}</span>
           </div>
         ) : (
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', textAlign: 'left' }}>
             <div className="form-group">
-              <label className="form-label" htmlFor="new-password">New Password *</label>
+              <label className="form-label" htmlFor="new-password">{t('auth.reset.newPassword', 'New Password')} *</label>
               <input
                 id="new-password"
                 type="password"
                 className="form-input"
-                placeholder="Minimum 6 characters"
+                placeholder={t('auth.reset.newPasswordPlaceholder', 'Minimum 6 characters')}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 minLength={6}
@@ -118,12 +120,12 @@ export default function ResetPasswordPage() {
             </div>
 
             <div className="form-group">
-              <label className="form-label" htmlFor="confirm-password">Confirm New Password *</label>
+              <label className="form-label" htmlFor="confirm-password">{t('auth.reset.confirmNewPassword', 'Confirm New Password')} *</label>
               <input
                 id="confirm-password"
                 type="password"
                 className="form-input"
-                placeholder="Re-enter password"
+                placeholder={t('auth.reset.confirmNewPasswordPlaceholder', 'Re-enter password')}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 minLength={6}
@@ -145,17 +147,18 @@ export default function ResetPasswordPage() {
                 marginTop: '0.5rem'
               }}
             >
-              {loading ? 'Updating...' : 'Save New Password'}
+              {loading ? t('auth.reset.updating', 'Updating...') : t('auth.reset.updateBtn', 'Save New Password')}
             </button>
           </form>
         )}
 
         <div style={{ marginTop: '1.5rem' }}>
           <Link to="/login" style={{ color: 'var(--primary-deep)', fontSize: '0.84rem', fontWeight: 600, textDecoration: 'none' }}>
-            ← Back to Login
+            {t('auth.backToLogin', '← Back to Login')}
           </Link>
         </div>
       </div>
     </div>
   );
 }
+

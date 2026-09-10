@@ -78,6 +78,8 @@ router.post('/ai-explain', async (req, res) => {
     let langInstruction = 'Respond in clear, simple English.';
     if (language === 'hi') {
       langInstruction = 'कृपया सरल, किसान-अनुकूल हिंदी (Devanagari script) में उत्तर दें।';
+    } else if (language === 'mr') {
+      langInstruction = 'कृपया सोप्या, शेतकरी-अनुकूल मराठी (Devanagari script) मध्ये उत्तर द्या.';
     } else if (language === 'hinglish') {
       langInstruction = 'Respond in friendly conversational Hinglish (Roman script, e.g. "Aaj mausam saaf hai, aap sinchai kar sakte hain").';
     }
@@ -130,6 +132,12 @@ Explain this weather in 3-4 bullet points specifically focused on irrigation, ch
           `• **वर्षा एवं हवा:** वर्षा की संभावना ${c.rainProbability}% है तथा हवा की गति ${c.windSpeed} km/h दर्ज की गई है।\n` +
           `• **खेत कार्य सलाह:** ${c.rainProbability >= 50 ? 'बारिश का अनुमान होने के कारण कीटनाशक या खाद का छिड़काव तुरंत टालें और जलभराव से बचाव करें।' : 'मौसम सामान्य कृषि गतिविधियों, निराई-गुड़ाई और आवश्यकतानुसार हल्की सिंचाई के अनुकूल है।'}\n` +
           `• **अलर्ट स्थिति:** ${alerts[0]?.title || 'वर्तमान में कोई गंभीर मौसम अलर्ट नहीं है।'}`;
+      } else if (language === 'mr') {
+        explanation = `🌾 **किसानसाथी हवामान विश्लेषण (${loc.name || 'तुमचा परिसर'}):**\n\n` +
+          `• **तापमान आणि स्थिती:** सध्याचे तापमान ${c.temperature}°C (${c.description}) असून, ते ${c.feelsLike}°C सारखे जाणवत आहे. हवेतील आर्द्रता ${c.humidity}% आहे.\n` +
+          `• **पाऊस आणि वारा:** पावसाची शक्यता ${c.rainProbability}% असून वाऱ्याचा वेग ${c.windSpeed} km/h नोंदवला गेला आहे.\n` +
+          `• **शेती सल्ला:** ${c.rainProbability >= 50 ? 'पावसाची शक्यता असल्याने कीटकनाशक अथवा खतांची फवारणी तात्काळ पुढे ढकला आणि शेतात पाणी साचू देऊ नका.' : 'हवामान नेहमीच्या शेतीकामांसाठी, खुरपणी आणि आवश्यकतेनुसार हलक्या सिंचनासाठी अनुकूल आहे.'}\n` +
+          `• **सूचना स्थिती:** ${alerts[0]?.title || 'सध्या कोणतीही मोठी हवामान सूचना नाही.'}`;
       } else if (language === 'hinglish') {
         explanation = `🌾 **KissanSaathi Weather Advice (${loc.name || 'Aapka Area'}):**\n\n` +
           `• **Mausam Summary:** Current temperature ${c.temperature}°C (${c.description}) hai, feels like ${c.feelsLike}°C, humidity ${c.humidity}%.\n` +

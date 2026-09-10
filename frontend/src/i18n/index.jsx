@@ -14,6 +14,8 @@ import enWeather from './locales/en/weather.json';
 import enAlerts from './locales/en/alerts.json';
 import enAssistant from './locales/en/assistant.json';
 import enLanding from './locales/en/landing.json';
+import enAuth from './locales/en/auth.json';
+import enProfile from './locales/en/profile.json';
 
 // Import Hindi Locales
 import hiCommon from './locales/hi/common.json';
@@ -29,6 +31,25 @@ import hiWeather from './locales/hi/weather.json';
 import hiAlerts from './locales/hi/alerts.json';
 import hiAssistant from './locales/hi/assistant.json';
 import hiLanding from './locales/hi/landing.json';
+import hiAuth from './locales/hi/auth.json';
+import hiProfile from './locales/hi/profile.json';
+
+// Import Marathi Locales
+import mrCommon from './locales/mr/common.json';
+import mrDashboard from './locales/mr/dashboard.json';
+import mrMarket from './locales/mr/market.json';
+import mrNearby from './locales/mr/nearby.json';
+import mrComparison from './locales/mr/comparison.json';
+import mrHistorical from './locales/mr/historical.json';
+import mrPrediction from './locales/mr/prediction.json';
+import mrSellDecision from './locales/mr/sellDecision.json';
+import mrExpenses from './locales/mr/expenses.json';
+import mrWeather from './locales/mr/weather.json';
+import mrAlerts from './locales/mr/alerts.json';
+import mrAssistant from './locales/mr/assistant.json';
+import mrLanding from './locales/mr/landing.json';
+import mrAuth from './locales/mr/auth.json';
+import mrProfile from './locales/mr/profile.json';
 
 const RESOURCES = {
   en: {
@@ -44,7 +65,9 @@ const RESOURCES = {
     weather: enWeather,
     alerts: enAlerts,
     assistant: enAssistant,
-    landing: enLanding
+    landing: enLanding,
+    auth: enAuth,
+    profile: enProfile
   },
   hi: {
     common: hiCommon,
@@ -59,18 +82,43 @@ const RESOURCES = {
     weather: hiWeather,
     alerts: hiAlerts,
     assistant: hiAssistant,
-    landing: hiLanding
+    landing: hiLanding,
+    auth: hiAuth,
+    profile: hiProfile
+  },
+  mr: {
+    common: mrCommon,
+    dashboard: mrDashboard,
+    market: mrMarket,
+    nearby: mrNearby,
+    comparison: mrComparison,
+    historical: mrHistorical,
+    prediction: mrPrediction,
+    sellDecision: mrSellDecision,
+    expenses: mrExpenses,
+    weather: mrWeather,
+    alerts: mrAlerts,
+    assistant: mrAssistant,
+    landing: mrLanding,
+    auth: mrAuth,
+    profile: mrProfile
   }
 };
 
 export const SUPPORTED_LANGUAGES = [
   { code: 'en', label: 'English', nativeName: 'English', flag: '🇬🇧' },
-  { code: 'hi', label: 'Hindi', nativeName: 'हिन्दी', flag: '🇮🇳' }
+  { code: 'hi', label: 'Hindi', nativeName: 'हिन्दी', flag: '🇮🇳' },
+  { code: 'mr', label: 'Marathi', nativeName: 'मराठी', flag: '🇮🇳' }
 ];
 
 const HINDI_MONTHS = [
   'जनवरी', 'फरवरी', 'मार्च', 'अप्रैल', 'मई', 'जून',
   'जुलाई', 'अगस्त', 'सितंबर', 'अक्टूबर', 'नवंबर', 'दिसंबर'
+];
+
+const MARATHI_MONTHS = [
+  'जानेवारी', 'फेब्रुवारी', 'मार्च', 'एप्रिल', 'मे', 'जून',
+  'जुलै', 'ऑगस्ट', 'सप्टेंबर', 'ऑक्टोबर', 'नोव्हेंबर', 'डिसेंबर'
 ];
 
 const ENGLISH_MONTHS = [
@@ -191,6 +239,11 @@ export function I18nProvider({ children }) {
       return `${day} ${hiMonth} ${year}`;
     }
 
+    if (language === 'mr') {
+      const mrMonth = MARATHI_MONTHS[monthIdx] || '';
+      return `${day} ${mrMonth} ${year}`;
+    }
+
     // English format: 10 Sep 2026
     const enMonth = ENGLISH_MONTHS[monthIdx] || '';
     return `${day} ${enMonth} ${year}`;
@@ -210,7 +263,8 @@ export function I18nProvider({ children }) {
     formatDate,
     formatNumber,
     supportedLanguages: SUPPORTED_LANGUAGES,
-    isHindi: language === 'hi'
+    isHindi: language === 'hi',
+    isMarathi: language === 'mr'
   }), [language, changeLanguage, t, formatDate, formatNumber]);
 
   return (
@@ -227,3 +281,4 @@ export function useTranslation() {
   }
   return context;
 }
+

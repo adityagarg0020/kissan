@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from '../i18n';
-import { LogIn, UserPlus, KeyRound, AlertCircle, CheckCircle, ArrowLeft } from 'lucide-react';
+import { LogIn, UserPlus, KeyRound, AlertCircle, CheckCircle, ArrowLeft, X } from 'lucide-react';
 
 export default function LoginPage() {
   const { user, signIn, signUp, resetPassword } = useAuth();
@@ -14,6 +14,7 @@ export default function LoginPage() {
   const initialTab = searchParams.get('tab') === 'signup' ? 'signup' : 'login';
 
   const [mode, setMode] = useState(initialTab); // 'login' | 'signup' | 'forgot'
+  const [showToast, setShowToast] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
@@ -43,10 +44,10 @@ export default function LoginPage() {
         navigate(redirectPath, { replace: true });
       } else if (mode === 'signup') {
         if (!fullName.trim()) {
-          throw new Error('Please enter your full name.');
+          throw new Error(t('auth.nameRequired', 'Please enter your full name.'));
         }
         if (password.length < 6) {
-          throw new Error('Password must be at least 6 characters long.');
+          throw new Error(t('auth.passwordLength', 'Password must be at least 6 characters long.'));
         }
         const data = await signUp({
           email,
@@ -59,61 +60,137 @@ export default function LoginPage() {
         if (data?.session) {
           navigate(redirectPath, { replace: true });
         } else {
-          setSuccessMsg('Account created successfully! You can now log in.');
+          setSuccessMsg(t('auth.accountCreated', 'Account created successfully! You can now log in.'));
           setMode('login');
         }
       } else if (mode === 'forgot') {
         await resetPassword(email);
-        setSuccessMsg('Password reset instructions have been sent to your email address.');
+        setSuccessMsg(t('auth.resetSent', 'Password reset instructions have been sent to your email address.'));
       }
     } catch (err) {
       console.error('Auth error:', err);
-      setErrorMsg(err.message || 'Authentication failed. Please check your credentials.');
+      setErrorMsg(err.message || t('auth.invalidCreds', 'Authentication failed. Please check your credentials.'));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div style={{ maxWidth: '480px', margin: '2.5rem auto', padding: '0 1rem' }}>
+    <div style={{ maxWidth: '480px', margin: '2.5rem auto', padding: '0 1rem', position: 'relative' }}>
+      {/* Floating Farmer Login Required Toast Notification */}
+      {showToast && (
+        <aside
+          className="farmer-login-floating-toast"
+          role="status"
+          aria-live="polite"
+          style={{
+            position: 'fixed',
+            top: '20px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 9999,
+            width: 'calc(100% - 2rem)',
+            maxWidth: '560px',
+            backgroundColor: '#fffbeb',
+            border: '1.5px solid #f59e0b',
+            boxShadow: '0 10px 25px -5px rgba(180, 83, 9, 0.2), 0 8px 10px -6px rgba(180, 83, 9, 0.08)',
+            borderRadius: 'var(--radius-md, 12px)',
+            padding: '0.85rem 1rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '0.75rem',
+            animation: 'slideDownToast 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+            <div style={{
+              backgroundColor: '#fef3c7',
+              color: '#d97706',
+              borderRadius: '50%',
+              padding: '0.35rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0
+            }}>
+              <AlertCircle size={18} />
+            </div>
+            <div style={{ fontSize: '0.88rem', fontWeight: 600, color: '#92400e', lineHeight: 1.4 }}>
+              {t('auth.loginRequired', 'Farmer Login Required: Please sign in or create an account to access this feature.')}
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowToast(false)}
+            aria-label="Close notification"
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: '#b45309',
+              cursor: 'pointer',
+              padding: '0.25rem',
+              display: 'flex',
+              alignItems: 'center',
+              borderRadius: '4px',
+              flexShrink: 0
+            }}
+          >
+            <X size={18} />
+          </button>
+        </aside>
+      )}
+
       <div style={{ marginBottom: '1.25rem' }}>
         <Link to="/" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', color: 'var(--primary-deep)', fontSize: '0.86rem', fontWeight: 600, textDecoration: 'none' }}>
-          <ArrowLeft size={16} /> Back to Home
+          <ArrowLeft size={16} /> {t('common.actions.back', 'Back to Home')}
         </Link>
       </div>
 
       <div className="card" style={{ padding: '2rem 1.75rem', boxShadow: '0 4px 20px rgba(0,0,0,0.06)' }}>
-        {/* Redirect Notice */}
-        {searchParams.get('redirect') && (
-          <div style={{
+        {/* In-Card Farmer Login Required Notification Banner */}
+        <div
+          className="farmer-login-card-banner"
+          role="status"
+          style={{
             backgroundColor: '#fffbeb',
-            border: '1px solid #fde68a',
+            border: '1.5px solid #fde68a',
+            borderLeft: '4px solid #d97706',
             color: '#92400e',
-            borderRadius: 'var(--radius-sm)',
-            padding: '0.65rem 0.85rem',
-            fontSize: '0.84rem',
+            borderRadius: 'var(--radius-sm, 8px)',
+            padding: '0.8rem 0.95rem',
+            fontSize: '0.88rem',
             display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            marginBottom: '1.25rem'
-          }}>
-            <AlertCircle size={16} style={{ flexShrink: 0 }} />
-            <span>Farmer Login Required: Please sign in or create an account to access this feature.</span>
+            alignItems: 'flex-start',
+            gap: '0.65rem',
+            marginBottom: '1.5rem',
+            lineHeight: 1.45,
+            boxShadow: '0 1px 4px rgba(217, 119, 6, 0.06)'
+          }}
+        >
+          <AlertCircle size={18} style={{ flexShrink: 0, marginTop: '0.12rem', color: '#d97706' }} />
+          <div>
+            <span style={{ fontWeight: 700, color: '#78350f' }}>
+              {t('auth.loginRequiredPrefix', 'Farmer Login Required: ')}
+            </span>
+            <span>
+              {t('auth.loginRequiredDetail', 'Please sign in or create an account to access this feature.')}
+            </span>
           </div>
-        )}
+        </div>
 
         {/* Brand Banner */}
         <div style={{ textAlign: 'center', marginBottom: '1.75rem' }}>
           <div style={{ fontSize: '2.4rem', marginBottom: '0.3rem' }}>🌾</div>
           <h1 style={{ fontSize: '1.45rem', fontWeight: 800, color: 'var(--primary-dark)', margin: 0 }}>
-            {mode === 'login' ? 'Farmer Login' : mode === 'signup' ? 'Create Farmer Account' : 'Reset Password'}
+            {mode === 'login' ? t('auth.title', 'Farmer Login') : mode === 'signup' ? t('auth.signupTab', 'Create Farmer Account') : t('auth.reset.title', 'Reset Password')}
           </h1>
           <p style={{ fontSize: '0.84rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
             {mode === 'login' 
-              ? 'Sign in to access your farm records and expenses' 
+              ? t('auth.subtitle', 'Sign in to access your farm records and expenses') 
               : mode === 'signup' 
-              ? 'Secure, private agricultural management for your fields' 
-              : 'Enter your email to receive recovery instructions'}
+              ? t('auth.subtitle', 'Secure, private agricultural management for your fields') 
+              : t('auth.reset.subtitle', 'Enter your email to receive recovery instructions')}
           </p>
         </div>
 
@@ -142,7 +219,7 @@ export default function LoginPage() {
                 fontSize: '0.88rem'
               }}
             >
-              Sign In
+              {t('auth.loginTab', 'Sign In')}
             </button>
             <button
               type="button"
@@ -160,7 +237,7 @@ export default function LoginPage() {
                 fontSize: '0.88rem'
               }}
             >
-              Sign Up
+              {t('auth.signupTab', 'Sign Up')}
             </button>
           </div>
         )}
@@ -208,12 +285,12 @@ export default function LoginPage() {
           {mode === 'signup' && (
             <>
               <div className="form-group">
-                <label className="form-label" htmlFor="full-name">Full Name *</label>
+                <label className="form-label" htmlFor="full-name">{t('auth.fullNameLabel', 'Full Name')} *</label>
                 <input
                   id="full-name"
                   type="text"
                   className="form-input"
-                  placeholder="e.g. Ramesh Kumar Patel"
+                  placeholder={t('auth.fullNamePlaceholder', 'e.g. Ramesh Kumar Patel')}
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   required
@@ -221,12 +298,12 @@ export default function LoginPage() {
               </div>
 
               <div className="form-group">
-                <label className="form-label" htmlFor="phone-num">Mobile Number (Optional)</label>
+                <label className="form-label" htmlFor="phone-num">{t('auth.phoneLabel', 'Mobile Number (Optional)')}</label>
                 <input
                   id="phone-num"
                   type="tel"
                   className="form-input"
-                  placeholder="e.g. 9876543210"
+                  placeholder={t('auth.phonePlaceholder', 'e.g. 9876543210')}
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   maxLength={15}
@@ -234,7 +311,7 @@ export default function LoginPage() {
               </div>
 
               <div className="form-group">
-                <label className="form-label" htmlFor="lang-pref">Preferred Language</label>
+                <label className="form-label" htmlFor="lang-pref">{t('auth.preferredLangLabel', 'Preferred Language')}</label>
                 <select
                   id="lang-pref"
                   className="form-select"
@@ -243,6 +320,7 @@ export default function LoginPage() {
                 >
                   <option value="en">English</option>
                   <option value="hi">हिंदी (Hindi)</option>
+                  <option value="mr">मराठी (Marathi)</option>
                 </select>
               </div>
             </>
@@ -250,12 +328,12 @@ export default function LoginPage() {
 
           {/* Email */}
           <div className="form-group">
-            <label className="form-label" htmlFor="email-input">Email Address *</label>
+            <label className="form-label" htmlFor="email-input">{t('auth.emailLabel', 'Email Address')} *</label>
             <input
               id="email-input"
               type="email"
               className="form-input"
-              placeholder="farmer@example.com"
+              placeholder={t('auth.emailPlaceholder', 'farmer@example.com')}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -266,14 +344,14 @@ export default function LoginPage() {
           {mode !== 'forgot' && (
             <div className="form-group">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
-                <label className="form-label" htmlFor="password-input" style={{ marginBottom: 0 }}>Password *</label>
+                <label className="form-label" htmlFor="password-input" style={{ marginBottom: 0 }}>{t('auth.passwordLabel', 'Password')} *</label>
                 {mode === 'login' && (
                   <button
                     type="button"
                     onClick={() => { setMode('forgot'); setErrorMsg(null); setSuccessMsg(null); }}
                     style={{ background: 'none', border: 'none', color: 'var(--primary-deep)', fontSize: '0.78rem', cursor: 'pointer', padding: 0, fontWeight: 600 }}
                   >
-                    Forgot Password?
+                    {t('auth.forgotPasswordPrompt', 'Forgot Password?')}
                   </button>
                 )}
               </div>
@@ -281,7 +359,7 @@ export default function LoginPage() {
                 id="password-input"
                 type="password"
                 className="form-input"
-                placeholder="Minimum 6 characters"
+                placeholder={t('auth.passwordPlaceholder', 'Minimum 6 characters')}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 minLength={6}
@@ -307,18 +385,18 @@ export default function LoginPage() {
             }}
           >
             {loading ? (
-              <span>Please wait...</span>
+              <span>{t('auth.loggingIn', 'Please wait...')}</span>
             ) : mode === 'login' ? (
               <>
-                <LogIn size={17} /> Log In
+                <LogIn size={17} /> {t('auth.loginBtn', 'Log In')}
               </>
             ) : mode === 'signup' ? (
               <>
-                <UserPlus size={17} /> Create Account
+                <UserPlus size={17} /> {t('auth.signupBtn', 'Create Account')}
               </>
             ) : (
               <>
-                <KeyRound size={17} /> Send Reset Link
+                <KeyRound size={17} /> {t('auth.forgotBtn', 'Send Reset Link')}
               </>
             )}
           </button>
@@ -332,14 +410,14 @@ export default function LoginPage() {
               onClick={() => { setMode('login'); setErrorMsg(null); setSuccessMsg(null); }}
               style={{ background: 'none', border: 'none', color: 'var(--primary-deep)', fontSize: '0.84rem', cursor: 'pointer', fontWeight: 600 }}
             >
-              ← Back to Sign In
+              {t('auth.backToLogin', '← Back to Sign In')}
             </button>
           </div>
         )}
 
         {/* Privacy Note */}
         <div style={{ marginTop: '1.75rem', borderTop: '1px solid var(--border-light)', paddingTop: '1rem', textAlign: 'center', fontSize: '0.76rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
-          🔒 Your information is used to personalize your KissanSaathi experience and manage your farm records. We never share your data.
+          🔒 {t('landing.transparency.subtitle', 'Your information is used to personalize your KissanSaathi experience and manage your farm records. We never share your data.')}
         </div>
       </div>
     </div>

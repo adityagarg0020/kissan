@@ -38,7 +38,7 @@ export default function ExpenseSummaryCard() {
               <Wallet size={24} />
             </div>
             <div>
-              <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--text-primary)' }}>
+              <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--text-main)' }}>
                 {t('expenses.summaryCard.title')}
               </div>
               <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>
@@ -70,7 +70,7 @@ export default function ExpenseSummaryCard() {
             <div style={{ fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600, color: 'var(--text-secondary)' }}>
               {t('expenses.summaryCard.farmExpenseTracker')} &bull; {summary.season} {summary.year}
             </div>
-            <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', marginTop: '0.15rem' }}>
+            <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)', marginTop: '0.15rem' }}>
               🌾 {summary.crop} {summary.variety ? `(${summary.variety})` : ''}
             </div>
           </div>
@@ -82,7 +82,7 @@ export default function ExpenseSummaryCard() {
             <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
               {t('expenses.summaryCard.totalRecordedCost')}
             </div>
-            <div style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+            <div style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-main)' }}>
               ₹{formatNumber(summary.total_cost)}
             </div>
           </div>

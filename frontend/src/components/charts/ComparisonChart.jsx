@@ -1,10 +1,13 @@
 import React from 'react';
+import { useTranslation } from '../../i18n';
 
 export default function ComparisonChart({ mandis = [] }) {
+  const { t } = useTranslation();
+
   if (!mandis || mandis.length === 0) {
     return (
       <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-        Select mandis above to compare prices.
+        {t('comparison.emptyDesc', 'Select mandis above to compare prices.')}
       </div>
     );
   }
@@ -128,7 +131,7 @@ export default function ComparisonChart({ mandis = [] }) {
                   fontWeight="700"
                   fill="#2d6a4f"
                 >
-                  HIGHEST
+                  {t('comparison.highest', 'HIGHEST')}
                 </text>
               )}
               {isLowest && (
@@ -139,7 +142,7 @@ export default function ComparisonChart({ mandis = [] }) {
                   fontWeight="700"
                   fill="#c92a2a"
                 >
-                  LOWEST
+                  {t('comparison.lowest', 'LOWEST')}
                 </text>
               )}
             </g>

@@ -1,8 +1,9 @@
 {
   "appName": "KissanSaathi",
   "appTagline": "Agricultural Market Intelligence & AI Decision Support",
-  "sihBadge": "SIH Problem Statement • SIH26127",
-  "sihPrototype": "SIH26127 • Smart India Hackathon Prototype",
+  "sihBadge": "SIH Problem Statement • SIH26132",
+  "sihPrototype": "SIH26132 • Smart India Hackathon Prototype",
+  "greeting": "Namaste",
   "nav": {
     "dashboard": "Dashboard",
     "market": "Live Mandi Prices",
@@ -26,7 +27,7 @@
   },
   "footer": {
     "title": "KissanSaathi Market Intelligence System",
-    "developedUnder": "Developed under SIH Problem Statement SIH26127",
+    "developedUnder": "Developed under SIH Problem Statement SIH26132",
     "dataSource": "Data Source: Agmarknet via Data.gov.in • Official Government Mandi Price Database",
     "disclaimer": "Market prices, recommendations, and forecasts are indicative and do not guarantee future profit or rates."
   },

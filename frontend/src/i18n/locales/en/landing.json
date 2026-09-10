@@ -1,17 +1,17 @@
 {
   "nav": {
     "home": "Home",
-    "market": "Market Prices",
+    "market": "Market",
     "features": "Features",
     "howItWorks": "How It Works",
     "weather": "Weather",
-    "about": "About & Data",
+    "about": "About",
     "login": "Log In",
     "getStarted": "Get Started",
     "dashboard": "Go to Dashboard"
   },
   "hero": {
-    "badge": "SIH Problem Statement • SIH26127",
+    "badge": "SIH Problem Statement • SIH26132",
     "headline": "Make Better Farming Decisions with KissanSaathi",
     "supporting": "Check mandi prices, compare markets, understand historical price trends, track farm expenses, monitor weather and get AI-powered agricultural assistance — all in one place.",
     "primaryCta": "Get Started",
@@ -113,6 +113,7 @@
     "text": "KissanSaathi is designed to make agricultural information easier to understand for every farmer across India.",
     "langEn": "English",
     "langHi": "हिन्दी (Hindi)",
+    "langMr": "मराठी (Marathi)",
     "langHinglish": "Hinglish",
     "prompt": "Switch language anytime:"
   },
@@ -135,7 +136,7 @@
     "p4": "Crop-specific farm expense tracking to identify true break-even points",
     "p5": "Real-time weather reports and actionable farming advisories",
     "p6": "AI-powered decision support grounded strictly in verified agricultural records",
-    "p7": "Full English and Hindi bilingual support accessible on mobile phones",
+    "p7": "Full English, Hindi, and Marathi multilingual support accessible on mobile phones",
     "noFakeClaims": "Notice: KissanSaathi does not guarantee future crop yields, market rates, or profits. Market prices fluctuate based on real supply and demand."
   },
   "transparency": {
@@ -155,7 +156,7 @@
   },
   "footer": {
     "tagline": "Agricultural Market Intelligence & AI Decision Support System",
-    "sihBadge": "SIH Problem Statement SIH26127 • Smart India Hackathon",
+    "sihBadge": "SIH Problem Statement SIH26132 • Smart India Hackathon",
     "linksTitle": "Quick Navigation",
     "market": "Live Mandi Prices",
     "historical": "Historical Analysis",

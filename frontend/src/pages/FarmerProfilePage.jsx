@@ -77,11 +77,11 @@ export default function FarmerProfilePage() {
         phone: phone.trim() || null,
         preferred_language: preferredLang
       });
-      setProfileMsg({ type: 'success', text: 'Farmer profile updated successfully!' });
+      setProfileMsg({ type: 'success', text: t('profile.personal.profileSaved', 'Farmer profile updated successfully!') });
       setIsEditingProfile(false);
       setTimeout(() => setProfileMsg(null), 3000);
     } catch (err) {
-      setProfileMsg({ type: 'error', text: err.message || 'Failed to update profile.' });
+      setProfileMsg({ type: 'error', text: err.message || t('profile.personal.profileSaveError', 'Failed to update profile.') });
     } finally {
       setProfileSaving(false);
     }
@@ -121,62 +121,47 @@ export default function FarmerProfilePage() {
       pincode: farm.pincode || '',
       soil_type: farm.soil_type || 'Alluvial',
       irrigation_type: farm.irrigation_type || 'Tubewell / Borewell',
-      latitude: farm.latitude !== null && farm.latitude !== undefined ? String(farm.latitude) : '',
-      longitude: farm.longitude !== null && farm.longitude !== undefined ? String(farm.longitude) : '',
+      latitude: farm.latitude !== undefined && farm.latitude !== null ? String(farm.latitude) : '',
+      longitude: farm.longitude !== undefined && farm.longitude !== null ? String(farm.longitude) : '',
       is_primary: !!farm.is_primary
     });
     setFarmError(null);
     setFarmModalOpen(true);
   };
 
-  // Save Farm (Add or Edit)
+  // Handle Farm Save (Add or Edit)
   const handleSaveFarm = async (e) => {
     e.preventDefault();
+    setFarmSaving(true);
     setFarmError(null);
 
-    const areaNum = parseFloat(farmForm.area);
-    if (isNaN(areaNum) || areaNum <= 0) {
-      setFarmError('Please enter a valid farm area greater than 0.');
-      return;
-    }
-
-    if (!farmForm.farm_name.trim()) {
-      setFarmError('Please specify a farm name.');
-      return;
-    }
-
-    let lat = null;
-    let lng = null;
-    if (farmForm.latitude !== '') {
-      lat = parseFloat(farmForm.latitude);
-      if (isNaN(lat) || lat < -90 || lat > 90) {
-        setFarmError('Latitude must be between -90 and 90.');
-        return;
-      }
-    }
-    if (farmForm.longitude !== '') {
-      lng = parseFloat(farmForm.longitude);
-      if (isNaN(lng) || lng < -180 || lng > 180) {
-        setFarmError('Longitude must be between -180 and 180.');
-        return;
-      }
-    }
-
-    setFarmSaving(true);
     try {
+      const areaNum = parseFloat(farmForm.area);
+      if (isNaN(areaNum) || areaNum <= 0) {
+        throw new Error('Please enter a valid farm area greater than 0.');
+      }
+
+      const payload = {
+        farm_name: farmForm.farm_name.trim(),
+        area: areaNum,
+        area_unit: farmForm.area_unit,
+        state: farmForm.state,
+        district: farmForm.district.trim(),
+        village: farmForm.village.trim() || null,
+        pincode: farmForm.pincode.trim() || null,
+        soil_type: farmForm.soil_type,
+        irrigation_type: farmForm.irrigation_type,
+        latitude: farmForm.latitude ? parseFloat(farmForm.latitude) : null,
+        longitude: farmForm.longitude ? parseFloat(farmForm.longitude) : null,
+        is_primary: farmForm.is_primary
+      };
+
       if (editingFarmId) {
-        await updateFarm(editingFarmId, {
-          ...farmForm,
-          area: areaNum,
-          latitude: lat,
-          longitude: lng
-        });
+        await updateFarm(editingFarmId, payload);
       } else {
         await addFarm({
-          ...farmForm,
-          area: areaNum,
-          latitude: lat,
-          longitude: lng
+          ...payload,
+          primary_crop: 'Wheat'
         });
       }
       setFarmModalOpen(false);
@@ -189,11 +174,11 @@ export default function FarmerProfilePage() {
 
   // Delete Farm with prompt
   const handleDeleteFarm = async (farmId, name) => {
-    if (window.confirm(`Are you sure you want to delete "${name}"? This will also remove associated crop and expense logs for this farm.`)) {
+    if (window.confirm(t('profile.farms.deleteConfirm', `Are you sure you want to delete "${name}"? This will also remove associated crop and expense logs for this farm.`))) {
       try {
         await deleteFarm(farmId);
       } catch (err) {
-        alert('Could not delete farm: ' + err.message);
+        alert(t('profile.personal.profileSaveError', 'Could not delete farm: ') + err.message);
       }
     }
   };
@@ -221,7 +206,7 @@ export default function FarmerProfilePage() {
 
   // Logout
   const handleLogout = async () => {
-    if (window.confirm('Are you sure you want to sign out?')) {
+    if (window.confirm(t('profile.account.signOutConfirm', 'Are you sure you want to sign out?'))) {
       await signOut();
       navigate('/login', { replace: true });
     }
@@ -236,11 +221,11 @@ export default function FarmerProfilePage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <span style={{ fontSize: '1.6rem' }}>👤</span>
             <h1 style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--primary-dark)', margin: 0 }}>
-              Farmer Profile & Farm Management
+              {t('profile.pageTitle', 'Farmer Profile & Farm Management')}
             </h1>
           </div>
           <p style={{ margin: '0.25rem 0 0', color: 'var(--text-muted)', fontSize: '0.88rem' }}>
-            Manage your personal profile, registered farms, soil parameters, and crop workspaces.
+            {t('profile.pageSubtitle', 'Manage your personal profile, registered farms, soil parameters, and crop workspaces.')}
           </p>
         </div>
 
@@ -249,7 +234,7 @@ export default function FarmerProfilePage() {
           className="btn btn-outline"
           style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', borderColor: '#ffc9c9', color: '#c92a2a', fontWeight: 600 }}
         >
-          <LogOut size={16} /> Sign Out
+          <LogOut size={16} /> {t('profile.account.signOut', 'Sign Out')}
         </button>
       </div>
 
@@ -280,7 +265,7 @@ export default function FarmerProfilePage() {
         <div className="card" style={{ padding: '1.5rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.2rem', borderBottom: '1px solid var(--border-light)', paddingBottom: '0.75rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 700, color: 'var(--primary-dark)', fontSize: '1.05rem' }}>
-              <User size={18} color="var(--primary)" /> Personal Information
+              <User size={18} color="var(--primary)" /> {t('profile.personal.title', 'Personal Information')}
             </div>
             {!isEditingProfile && (
               <button
@@ -293,7 +278,7 @@ export default function FarmerProfilePage() {
                   setIsEditingProfile(true);
                 }}
               >
-                <Edit2 size={13} /> Edit
+                <Edit2 size={13} /> {t('profile.personal.editBtn', 'Edit')}
               </button>
             )}
           </div>
@@ -301,7 +286,7 @@ export default function FarmerProfilePage() {
           {isEditingProfile ? (
             <form onSubmit={handleSaveProfile} style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
               <div className="form-group">
-                <label className="form-label" htmlFor="edit-name">Full Name *</label>
+                <label className="form-label" htmlFor="edit-name">{t('profile.personal.farmerName', 'Full Name')} *</label>
                 <input
                   id="edit-name"
                   type="text"
@@ -313,7 +298,7 @@ export default function FarmerProfilePage() {
               </div>
 
               <div className="form-group">
-                <label className="form-label" htmlFor="edit-phone">Phone Number</label>
+                <label className="form-label" htmlFor="edit-phone">{t('profile.personal.phone', 'Phone Number')}</label>
                 <input
                   id="edit-phone"
                   type="tel"
@@ -325,7 +310,7 @@ export default function FarmerProfilePage() {
               </div>
 
               <div className="form-group">
-                <label className="form-label" htmlFor="edit-email">Email (Auth Managed)</label>
+                <label className="form-label" htmlFor="edit-email">{t('profile.personal.email', 'Email (Auth Managed)')}</label>
                 <input
                   id="edit-email"
                   type="text"
@@ -337,7 +322,7 @@ export default function FarmerProfilePage() {
               </div>
 
               <div className="form-group">
-                <label className="form-label" htmlFor="edit-lang">Preferred Language</label>
+                <label className="form-label" htmlFor="edit-lang">{t('profile.personal.preferredLang', 'Preferred Language')}</label>
                 <select
                   id="edit-lang"
                   className="form-select"
@@ -346,12 +331,13 @@ export default function FarmerProfilePage() {
                 >
                   <option value="en">English</option>
                   <option value="hi">हिंदी (Hindi)</option>
+                  <option value="mr">मराठी (Marathi)</option>
                 </select>
               </div>
 
               <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
                 <button type="submit" className="btn btn-primary" disabled={profileSaving} style={{ flex: 1 }}>
-                  {profileSaving ? 'Saving...' : 'Save Profile'}
+                  {profileSaving ? t('profile.personal.saving', 'Saving...') : t('profile.personal.saveProfile', 'Save Profile')}
                 </button>
                 <button
                   type="button"
@@ -359,7 +345,7 @@ export default function FarmerProfilePage() {
                   onClick={() => setIsEditingProfile(false)}
                   disabled={profileSaving}
                 >
-                  Cancel
+                  {t('profile.personal.cancel', 'Cancel')}
                 </button>
               </div>
             </form>
@@ -367,16 +353,16 @@ export default function FarmerProfilePage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
               <div>
                 <span style={{ fontSize: '0.74rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700 }}>
-                  Farmer Name
+                  {t('profile.personal.farmerName', 'Farmer Name')}
                 </span>
                 <div style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-main)', marginTop: '0.15rem' }}>
-                  {profile?.full_name || 'Farmer Brother'}
+                  {profile?.full_name || t('profile.personal.farmerBrother', 'Farmer Brother')}
                 </div>
               </div>
 
               <div>
                 <span style={{ fontSize: '0.74rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700 }}>
-                  Email Address
+                  {t('profile.personal.email', 'Email Address')}
                 </span>
                 <div style={{ fontSize: '0.92rem', color: 'var(--text-main)', marginTop: '0.15rem' }}>
                   {user?.email || 'N/A'}
@@ -385,25 +371,25 @@ export default function FarmerProfilePage() {
 
               <div>
                 <span style={{ fontSize: '0.74rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700 }}>
-                  Phone Number
+                  {t('profile.personal.phone', 'Phone Number')}
                 </span>
                 <div style={{ fontSize: '0.92rem', color: 'var(--text-main)', marginTop: '0.15rem' }}>
-                  {profile?.phone || 'Not recorded'}
+                  {profile?.phone || t('profile.personal.notRecorded', 'Not recorded')}
                 </div>
               </div>
 
               <div>
                 <span style={{ fontSize: '0.74rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700 }}>
-                  Preferred Language
+                  {t('profile.personal.preferredLang', 'Preferred Language')}
                 </span>
                 <div style={{ fontSize: '0.92rem', color: 'var(--text-main)', marginTop: '0.15rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                   <Globe size={14} color="var(--primary)" />
-                  {profile?.preferred_language === 'hi' ? 'हिंदी (Hindi)' : 'English'}
+                  {profile?.preferred_language === 'hi' ? 'हिंदी (Hindi)' : profile?.preferred_language === 'mr' ? 'मराठी (Marathi)' : 'English'}
                 </div>
               </div>
 
               <div style={{ marginTop: '0.5rem', padding: '0.75rem', backgroundColor: 'var(--bg-subtle)', borderRadius: 'var(--radius-sm)', fontSize: '0.76rem', color: 'var(--text-muted)' }}>
-                Farmer ID: <code>{user?.id?.substring(0, 16)}...</code>
+                {t('profile.personal.farmerId', 'Farmer ID')}: <code>{user?.id?.substring(0, 16)}...</code>
               </div>
             </div>
           )}
@@ -415,10 +401,10 @@ export default function FarmerProfilePage() {
         <div className="card" style={{ padding: '1.5rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.2rem', borderBottom: '1px solid var(--border-light)', paddingBottom: '0.75rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 700, color: 'var(--primary-dark)', fontSize: '1.05rem' }}>
-              <Layers size={18} color="var(--primary)" /> Active Farm Workspace
+              <Layers size={18} color="var(--primary)" /> {t('profile.farms.title', 'Active Farm Workspace')}
             </div>
             <span className="card-badge">
-              {farms.length} {farms.length === 1 ? 'Farm' : 'Farms'} Registered
+              {farms.length} {t('profile.farms.title', 'Farms')}
             </span>
           </div>
 
@@ -426,7 +412,7 @@ export default function FarmerProfilePage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div className="form-group">
                 <label className="form-label" htmlFor="farm-selector">
-                  Current Selected Farm:
+                  {t('profile.farms.subtitle', 'Current Selected Farm:')}
                 </label>
                 <select
                   id="farm-selector"
@@ -437,7 +423,7 @@ export default function FarmerProfilePage() {
                 >
                   {farms.map(f => (
                     <option key={f.id} value={f.id}>
-                      🌾 {f.farm_name} ({f.area} {f.area_unit}) {f.is_primary ? '• Primary' : ''}
+                      🌾 {f.farm_name} ({f.area} {f.area_unit}) {f.is_primary ? '• ' + t('profile.farms.activeFarmBadge', 'Primary') : ''}
                     </option>
                   ))}
                 </select>
@@ -456,31 +442,31 @@ export default function FarmerProfilePage() {
                         {selectedFarm.farm_name}
                       </div>
                       <div style={{ fontSize: '0.86rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
-                        Area: <strong>{selectedFarm.area} {selectedFarm.area_unit}</strong>
+                        {t('profile.farms.area', 'Area')}: <strong>{selectedFarm.area} {selectedFarm.area_unit}</strong>
                       </div>
                     </div>
                     {selectedFarm.is_primary && (
                       <span className="card-badge" style={{ backgroundColor: '#ebfbee', color: '#2b8a3e' }}>
-                        Primary
+                        {t('profile.farms.activeFarmBadge', 'Primary')}
                       </span>
                     )}
                   </div>
 
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.5rem', marginTop: '0.85rem', fontSize: '0.82rem', color: 'var(--text-main)' }}>
                     <div>
-                      <span style={{ color: 'var(--text-muted)' }}>Location: </span>
-                      {selectedFarm.district || selectedFarm.state ? `${selectedFarm.district || ''}, ${selectedFarm.state || ''}` : 'Not specified'}
+                      <span style={{ color: 'var(--text-muted)' }}>{t('profile.farms.location', 'Location')}: </span>
+                      {selectedFarm.district || selectedFarm.state ? `${selectedFarm.district || ''}, ${selectedFarm.state || ''}` : t('profile.farms.noFarms', 'Not specified')}
                     </div>
                     <div>
-                      <span style={{ color: 'var(--text-muted)' }}>Village: </span>
+                      <span style={{ color: 'var(--text-muted)' }}>{t('profile.farmModal.village', 'Village')}: </span>
                       {selectedFarm.village || '—'}
                     </div>
                     <div>
-                      <span style={{ color: 'var(--text-muted)' }}>Soil Type: </span>
+                      <span style={{ color: 'var(--text-muted)' }}>{t('profile.farms.soilType', 'Soil Type')}: </span>
                       {selectedFarm.soil_type || '—'}
                     </div>
                     <div>
-                      <span style={{ color: 'var(--text-muted)' }}>Irrigation: </span>
+                      <span style={{ color: 'var(--text-muted)' }}>{t('profile.farms.irrigationType', 'Irrigation')}: </span>
                       {selectedFarm.irrigation_type || '—'}
                     </div>
                   </div>
@@ -491,7 +477,7 @@ export default function FarmerProfilePage() {
                       style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }}
                       onClick={() => openEditFarmModal(selectedFarm)}
                     >
-                      <Edit2 size={13} /> Edit This Farm
+                      <Edit2 size={13} /> {t('profile.farms.editFarmBtn', 'Edit This Farm')}
                     </button>
                     {farms.length > 1 && (
                       <button
@@ -499,7 +485,7 @@ export default function FarmerProfilePage() {
                         style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', color: '#c92a2a', borderColor: '#ffc9c9' }}
                         onClick={() => handleDeleteFarm(selectedFarm.id, selectedFarm.farm_name)}
                       >
-                        <Trash2 size={13} /> Delete
+                        <Trash2 size={13} /> {t('profile.farms.deleteFarmBtn', 'Delete')}
                       </button>
                     )}
                   </div>
@@ -509,9 +495,9 @@ export default function FarmerProfilePage() {
           ) : (
             <div style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--text-muted)' }}>
               <Sprout size={32} style={{ color: 'var(--primary-light)', margin: '0 auto 0.5rem' }} />
-              <p style={{ fontSize: '0.88rem' }}>No farms registered yet.</p>
+              <p style={{ fontSize: '0.88rem' }}>{t('profile.farms.noFarms', 'No farms registered yet.')}</p>
               <button className="btn btn-primary" onClick={openAddFarmModal} style={{ marginTop: '0.5rem' }}>
-                <Plus size={15} /> Add Your First Farm
+                <Plus size={15} /> {t('profile.farms.addNewFarm', 'Add Your First Farm')}
               </button>
             </div>
           )}
@@ -522,7 +508,7 @@ export default function FarmerProfilePage() {
               onClick={openAddFarmModal}
               style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.45rem', padding: '0.65rem' }}
             >
-              <Plus size={16} /> Add Another Farm
+              <Plus size={16} /> {t('profile.farms.addNewFarm', 'Add Another Farm')}
             </button>
           </div>
         </div>
@@ -536,10 +522,10 @@ export default function FarmerProfilePage() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
           <div>
             <h2 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--primary-dark)', margin: 0 }}>
-              🌾 All Registered Farms ({farms.length})
+              🌾 {t('profile.farms.title', 'All Registered Farms')} ({farms.length})
             </h2>
             <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: '0.2rem 0 0' }}>
-              Switch between your fields or update farm-specific soil and irrigation details.
+              {t('profile.farms.subtitle', 'Switch between your fields or update farm-specific soil and irrigation details.')}
             </p>
           </div>
           <button
@@ -547,13 +533,13 @@ export default function FarmerProfilePage() {
             onClick={openAddFarmModal}
             style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.82rem' }}
           >
-            <Plus size={15} /> New Farm
+            <Plus size={15} /> {t('profile.farms.addNewFarm', 'New Farm')}
           </button>
         </div>
 
         {farms.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
-            No farms recorded. Click "New Farm" to add your field.
+            {t('profile.farms.noFarms', 'No farms recorded. Click "New Farm" to add your field.')}
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
@@ -579,23 +565,23 @@ export default function FarmerProfilePage() {
                       </div>
                       {farm.is_primary && (
                         <span className="card-badge" style={{ backgroundColor: '#ebfbee', color: '#2b8a3e', fontSize: '0.7rem' }}>
-                          Primary
+                          {t('profile.farms.activeFarmBadge', 'Primary')}
                         </span>
                       )}
                     </div>
 
                     <div style={{ fontSize: '0.85rem', color: 'var(--text-main)', marginTop: '0.35rem' }}>
-                      🌾 Area: <strong>{farm.area} {farm.area_unit}</strong>
+                      🌾 {t('profile.farms.area', 'Area')}: <strong>{farm.area} {farm.area_unit}</strong>
                     </div>
 
                     <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
-                      📍 {farm.district || farm.state ? `${farm.district || ''}, ${farm.state || ''}` : 'Location Not Set'}
+                      📍 {farm.district || farm.state ? `${farm.district || ''}, ${farm.state || ''}` : t('profile.farms.noFarms', 'Location Not Set')}
                       {farm.village && ` (${farm.village})`}
                     </div>
 
                     <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.4rem', lineHeight: 1.4 }}>
-                      <div>🌱 Soil: {farm.soil_type || 'Standard'}</div>
-                      <div>💧 Irrigation: {farm.irrigation_type || 'Standard'}</div>
+                      <div>🌱 {t('profile.farms.soilType', 'Soil')}: {farm.soil_type || 'Standard'}</div>
+                      <div>💧 {t('profile.farms.irrigationType', 'Irrigation')}: {farm.irrigation_type || 'Standard'}</div>
                     </div>
                   </div>
 
@@ -611,21 +597,21 @@ export default function FarmerProfilePage() {
                       }}
                       onClick={() => selectFarm(farm.id)}
                     >
-                      {isSelected ? '✓ Active Workspace' : 'Select Farm'}
+                      {isSelected ? '✓ ' + t('profile.farms.activeFarmBadge', 'Active Workspace') : t('profile.farms.setActiveBtn', 'Select Farm')}
                     </button>
 
                     <div style={{ display: 'flex', gap: '0.3rem' }}>
                       <button
                         onClick={() => openEditFarmModal(farm)}
                         style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '0.3rem' }}
-                        title="Edit farm details"
+                        title={t('profile.farms.editFarmBtn', 'Edit farm details')}
                       >
                         <Edit2 size={15} />
                       </button>
                       <button
                         onClick={() => handleDeleteFarm(farm.id, farm.farm_name)}
                         style={{ background: 'none', border: 'none', color: '#c92a2a', cursor: 'pointer', padding: '0.3rem' }}
-                        title="Delete farm"
+                        title={t('profile.farms.deleteFarmBtn', 'Delete farm')}
                       >
                         <Trash2 size={15} />
                       </button>
@@ -653,7 +639,7 @@ export default function FarmerProfilePage() {
       }}>
         <Shield size={20} color="var(--primary)" style={{ flexShrink: 0, marginTop: '0.1rem' }} />
         <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
-          <strong>Privacy & Data Ownership Notice:</strong> Your information is used to personalize your KissanSaathi experience and manage your farm records. All records are protected by Row Level Security (RLS) and associated exclusively with your authenticated farmer account. We never share your data with unauthorized parties.
+          <strong>{t('landing.transparency.title', 'Privacy & Data Ownership Notice')}:</strong> {t('landing.transparency.subtitle', 'Your information is used to personalize your KissanSaathi experience and manage your farm records.')}
         </div>
       </div>
 
@@ -683,7 +669,7 @@ export default function FarmerProfilePage() {
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid var(--border-light)', paddingBottom: '0.75rem' }}>
               <h2 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--primary-dark)', margin: 0 }}>
-                {editingFarmId ? 'Edit Farm Details' : 'Add New Farm'}
+                {editingFarmId ? t('profile.farmModal.editTitle', 'Edit Farm Details') : t('profile.farmModal.addTitle', 'Add New Farm')}
               </h2>
               <button
                 onClick={() => setFarmModalOpen(false)}
@@ -709,12 +695,12 @@ export default function FarmerProfilePage() {
 
             <form onSubmit={handleSaveFarm} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
               <div className="form-group">
-                <label className="form-label" htmlFor="modal-farm-name">Farm Name *</label>
+                <label className="form-label" htmlFor="modal-farm-name">{t('profile.farmModal.farmName', 'Farm Name')} *</label>
                 <input
                   id="modal-farm-name"
                   type="text"
                   className="form-input"
-                  placeholder="e.g. Village West Plot"
+                  placeholder={t('profile.farmModal.farmNamePlaceholder', 'e.g. Village West Plot')}
                   value={farmForm.farm_name}
                   onChange={(e) => setFarmForm({ ...farmForm, farm_name: e.target.value })}
                   required
@@ -723,7 +709,7 @@ export default function FarmerProfilePage() {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                 <div className="form-group">
-                  <label className="form-label" htmlFor="modal-area">Farm Area *</label>
+                  <label className="form-label" htmlFor="modal-area">{t('profile.farmModal.area', 'Farm Area')} *</label>
                   <input
                     id="modal-area"
                     type="number"
@@ -738,23 +724,24 @@ export default function FarmerProfilePage() {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label" htmlFor="modal-unit">Area Unit *</label>
+                  <label className="form-label" htmlFor="modal-unit">{t('profile.farmModal.areaUnit', 'Area Unit')} *</label>
                   <select
                     id="modal-unit"
                     className="form-select"
                     value={farmForm.area_unit}
                     onChange={(e) => setFarmForm({ ...farmForm, area_unit: e.target.value })}
                   >
-                    <option value="Acre">Acre (एकड़)</option>
-                    <option value="Hectare">Hectare (हेक्टेयर)</option>
-                    <option value="Bigha">Bigha (बीघा)</option>
+                    <option value="Acre">{t('profile.farmModal.units.acre', 'Acre (एकड़)')}</option>
+                    <option value="Hectare">{t('profile.farmModal.units.hectare', 'Hectare (हेक्टेयर)')}</option>
+                    <option value="Bigha">{t('profile.farmModal.units.bigha', 'Bigha (बीघा)')}</option>
+                    <option value="Guntha">{t('profile.farmModal.units.guntha', 'Guntha (गुंठा)')}</option>
                   </select>
                 </div>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                 <div className="form-group">
-                  <label className="form-label" htmlFor="modal-state">State</label>
+                  <label className="form-label" htmlFor="modal-state">{t('profile.farmModal.state', 'State')}</label>
                   <select
                     id="modal-state"
                     className="form-select"
@@ -766,7 +753,7 @@ export default function FarmerProfilePage() {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label" htmlFor="modal-district">District</label>
+                  <label className="form-label" htmlFor="modal-district">{t('profile.farmModal.district', 'District')}</label>
                   <input
                     id="modal-district"
                     type="text"
@@ -780,19 +767,19 @@ export default function FarmerProfilePage() {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                 <div className="form-group">
-                  <label className="form-label" htmlFor="modal-village">Village / Locality</label>
+                  <label className="form-label" htmlFor="modal-village">{t('profile.farmModal.village', 'Village / Locality')}</label>
                   <input
                     id="modal-village"
                     type="text"
                     className="form-input"
-                    placeholder="e.g. Fatehpur"
+                    placeholder={t('profile.farmModal.villagePlaceholder', 'e.g. Fatehpur')}
                     value={farmForm.village}
                     onChange={(e) => setFarmForm({ ...farmForm, village: e.target.value })}
                   />
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label" htmlFor="modal-pincode">Pincode</label>
+                  <label className="form-label" htmlFor="modal-pincode">{t('profile.farmModal.pincode', 'Pincode')}</label>
                   <input
                     id="modal-pincode"
                     type="text"
@@ -807,34 +794,34 @@ export default function FarmerProfilePage() {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                 <div className="form-group">
-                  <label className="form-label" htmlFor="modal-soil">Soil Type</label>
+                  <label className="form-label" htmlFor="modal-soil">{t('profile.farmModal.soilType', 'Soil Type')}</label>
                   <select
                     id="modal-soil"
                     className="form-select"
                     value={farmForm.soil_type}
                     onChange={(e) => setFarmForm({ ...farmForm, soil_type: e.target.value })}
                   >
-                    <option value="Alluvial">Alluvial (जलोढ़)</option>
-                    <option value="Black Soil">Black / Regur (काली मिट्टी)</option>
-                    <option value="Red & Yellow">Red & Yellow (लाल मिट्टी)</option>
+                    <option value="Alluvial">{t('profile.farmModal.soils.alluvial', 'Alluvial (जलोढ़)')}</option>
+                    <option value="Black Soil">{t('profile.farmModal.soils.black', 'Black / Regur (काली मिट्टी)')}</option>
+                    <option value="Red & Yellow">{t('profile.farmModal.soils.red', 'Red & Yellow (लाल मिट्टी)')}</option>
                     <option value="Sandy Loam">Sandy Loam (बलुई दोमट)</option>
-                    <option value="Clayey">Clayey (मटियार)</option>
+                    <option value="Clayey">{t('profile.farmModal.soils.clay', 'Clayey (मटियार)')}</option>
                   </select>
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label" htmlFor="modal-irrigation">Irrigation Type</label>
+                  <label className="form-label" htmlFor="modal-irrigation">{t('profile.farmModal.irrigationType', 'Irrigation Type')}</label>
                   <select
                     id="modal-irrigation"
                     className="form-select"
                     value={farmForm.irrigation_type}
                     onChange={(e) => setFarmForm({ ...farmForm, irrigation_type: e.target.value })}
                   >
-                    <option value="Tubewell / Borewell">Tubewell / Borewell</option>
-                    <option value="Canal">Canal (नहर)</option>
-                    <option value="Drip Irrigation">Drip Irrigation (टपक)</option>
-                    <option value="Sprinkler">Sprinkler (फव्वारा)</option>
-                    <option value="Rainfed">Rainfed / Unirrigated (वर्षा आधारित)</option>
+                    <option value="Tubewell / Borewell">{t('profile.farmModal.irrigations.tubewell', 'Tubewell / Borewell')}</option>
+                    <option value="Canal">{t('profile.farmModal.irrigations.canal', 'Canal (नहर)')}</option>
+                    <option value="Drip Irrigation">{t('profile.farmModal.irrigations.drip', 'Drip / Sprinkler')}</option>
+                    <option value="Sprinkler">{t('profile.farmModal.irrigations.drip', 'Sprinkler')}</option>
+                    <option value="Rainfed">{t('profile.farmModal.irrigations.rainfed', 'Rainfed (वर्षा आधारित)')}</option>
                   </select>
                 </div>
               </div>
@@ -848,7 +835,7 @@ export default function FarmerProfilePage() {
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
                   <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)' }}>
-                    GPS Coordinates (Optional)
+                    {t('profile.farmModal.coordsTitle', 'GPS Coordinates (Optional)')}
                   </span>
                   <button
                     type="button"
@@ -856,7 +843,7 @@ export default function FarmerProfilePage() {
                     className="btn btn-outline"
                     style={{ fontSize: '0.72rem', padding: '0.2rem 0.5rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
                   >
-                    <Navigation size={12} /> Use My Location
+                    <Navigation size={12} /> {t('profile.farmModal.detectGps', 'Use My Location')}
                   </button>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
@@ -864,7 +851,7 @@ export default function FarmerProfilePage() {
                     type="number"
                     step="0.0001"
                     className="form-input"
-                    placeholder="Latitude (e.g. 27.1767)"
+                    placeholder={t('profile.farmModal.latitude', 'Latitude (e.g. 27.1767)')}
                     value={farmForm.latitude}
                     onChange={(e) => setFarmForm({ ...farmForm, latitude: e.target.value })}
                   />
@@ -872,7 +859,7 @@ export default function FarmerProfilePage() {
                     type="number"
                     step="0.0001"
                     className="form-input"
-                    placeholder="Longitude (e.g. 78.0081)"
+                    placeholder={t('profile.farmModal.longitude', 'Longitude (e.g. 78.0081)')}
                     value={farmForm.longitude}
                     onChange={(e) => setFarmForm({ ...farmForm, longitude: e.target.value })}
                   />
@@ -888,13 +875,13 @@ export default function FarmerProfilePage() {
                   onChange={(e) => setFarmForm({ ...farmForm, is_primary: e.target.checked })}
                 />
                 <label htmlFor="modal-primary" style={{ fontSize: '0.85rem', color: 'var(--text-main)', cursor: 'pointer' }}>
-                  Set as primary / default farm
+                  {t('profile.farmModal.coordsDesc', 'Set as primary / default farm')}
                 </label>
               </div>
 
               <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.75rem' }}>
                 <button type="submit" className="btn btn-primary" disabled={farmSaving} style={{ flex: 1 }}>
-                  {farmSaving ? 'Saving...' : (editingFarmId ? 'Save Changes' : 'Create Farm')}
+                  {farmSaving ? t('profile.farmModal.savingFarm', 'Saving...') : (editingFarmId ? t('profile.farmModal.saveFarm', 'Save Changes') : t('profile.farmModal.saveFarm', 'Create Farm'))}
                 </button>
                 <button
                   type="button"
@@ -902,7 +889,7 @@ export default function FarmerProfilePage() {
                   onClick={() => setFarmModalOpen(false)}
                   disabled={farmSaving}
                 >
-                  Cancel
+                  {t('profile.farmModal.cancel', 'Cancel')}
                 </button>
               </div>
             </form>
@@ -913,3 +900,4 @@ export default function FarmerProfilePage() {
     </div>
   );
 }
+

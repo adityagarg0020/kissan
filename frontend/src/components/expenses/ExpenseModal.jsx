@@ -120,7 +120,7 @@ export default function ExpenseModal({ isOpen, onClose, onSave, initialData = nu
             <div style={{ padding: '0.4rem', borderRadius: '8px', backgroundColor: '#e8f5e9', color: '#2b8a3e', display: 'flex' }}>
               {initialData ? <Edit2 size={18} /> : <Plus size={18} />}
             </div>
-            <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+            <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-main)' }}>
               {initialData ? t('expenses.modal.editTitle') : t('expenses.modal.addTitle')}
             </h3>
           </div>
@@ -151,7 +151,7 @@ export default function ExpenseModal({ isOpen, onClose, onSave, initialData = nu
                 border: '1px solid #cbd5e1',
                 fontSize: '0.92rem',
                 backgroundColor: '#ffffff',
-                color: 'var(--text-primary)'
+                color: 'var(--text-main)'
               }}
             >
               {CATEGORIES.map((cat) => (
@@ -186,7 +186,7 @@ export default function ExpenseModal({ isOpen, onClose, onSave, initialData = nu
                   border: '1px solid #cbd5e1',
                   fontSize: '1.15rem',
                   fontWeight: 700,
-                  color: 'var(--text-primary)',
+                  color: 'var(--text-main)',
                   boxSizing: 'border-box'
                 }}
               />

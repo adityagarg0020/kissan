@@ -389,7 +389,7 @@ export default function ExpenseTrackerPage() {
               backgroundColor: '#ffffff',
               fontWeight: 600,
               fontSize: '0.88rem',
-              color: 'var(--text-primary)'
+              color: 'var(--text-main)'
             }}
           >
             {farmsList.map((f) => (
@@ -410,40 +410,48 @@ export default function ExpenseTrackerPage() {
       </div>
 
       {/* 2. Key Metrics Summary Strip */}
-      <div className="dashboard-stats-strip" style={{ marginBottom: '1.5rem' }}>
-        <div className="stat-pill">
-          <div className="stat-num" style={{ color: 'var(--text-primary)' }}>
+      <div className="dashboard-stats-strip" style={{ marginBottom: '1.5rem', marginTop: 0 }}>
+        <div className="stat-pill" style={{ borderLeft: '4px solid var(--primary)', backgroundColor: '#ffffff', boxShadow: 'var(--shadow-sm)' }}>
+          <div className="stat-num" style={{ color: 'var(--text-main)' }}>
             ₹{formatNumber(m.total_cost || 0)}
           </div>
-          <div className="stat-lbl">{t('expenses.kpis.totalCost')}</div>
+          <div className="stat-lbl" style={{ color: 'var(--text-secondary)' }}>
+            {t('expenses.kpis.totalCost')}
+          </div>
         </div>
 
-        <div className="stat-pill">
+        <div className="stat-pill" style={{ borderLeft: '4px solid #1c7ed6', backgroundColor: '#ffffff', boxShadow: 'var(--shadow-sm)' }}>
           <div className="stat-num" style={{ color: '#1c7ed6' }}>
             {m.cost_per_acre ? `₹${formatNumber(m.cost_per_acre)}` : '—'}
           </div>
-          <div className="stat-lbl">{t('expenses.kpis.costPerAcre')}</div>
+          <div className="stat-lbl" style={{ color: 'var(--text-secondary)' }}>
+            {t('expenses.kpis.costPerAcre')}
+          </div>
         </div>
 
-        <div className="stat-pill">
+        <div className="stat-pill" style={{ borderLeft: '4px solid #7048e8', backgroundColor: '#ffffff', boxShadow: 'var(--shadow-sm)' }}>
           <div className="stat-num" style={{ color: '#7048e8' }}>
             {m.cost_per_hectare ? `₹${formatNumber(m.cost_per_hectare)}` : '—'}
           </div>
-          <div className="stat-lbl">{t('expenses.kpis.costPerHectare')}</div>
+          <div className="stat-lbl" style={{ color: 'var(--text-secondary)' }}>
+            {t('expenses.kpis.costPerHectare')}
+          </div>
         </div>
 
-        <div className="stat-pill">
+        <div className="stat-pill" style={{ borderLeft: '4px solid #2b8a3e', backgroundColor: '#ffffff', boxShadow: 'var(--shadow-sm)' }}>
           <div className="stat-num" style={{ color: '#2b8a3e' }}>
             {m.break_even_price ? `₹${formatNumber(m.break_even_price)}${t('prediction.perQ')}` : '—'}
           </div>
-          <div className="stat-lbl">{t('expenses.kpis.breakEvenPrice')} ({m.production_basis ? t('expenses.kpis.perQuintalBasis') : t('expenses.kpis.perQuintalBasis')})</div>
+          <div className="stat-lbl" style={{ color: 'var(--text-secondary)' }}>
+            {t('expenses.kpis.breakEvenPrice')} ({m.production_basis ? t('expenses.kpis.perQuintalBasis') : t('expenses.kpis.perQuintalBasis')})
+          </div>
         </div>
       </div>
 
       {/* 3. Category Touch Cards Grid (Mobile-First) */}
       <div style={{ marginBottom: '1.5rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-          <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+          <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-main)' }}>
             {t('expenses.categories.title')}
           </h3>
           <button
@@ -476,21 +484,23 @@ export default function ExpenseTrackerPage() {
                 className="card"
                 style={{
                   padding: '0.85rem',
+                  marginBottom: 0,
                   cursor: 'pointer',
-                  border: catCost > 0 ? '1px solid #bbf7d0' : '1px solid #e2e8f0',
+                  border: catCost > 0 ? '1.5px solid #86efac' : '1px solid var(--border-light)',
                   backgroundColor: catCost > 0 ? '#f0fdf4' : '#ffffff',
+                  boxShadow: 'var(--shadow-sm)',
                   transition: 'all 0.15s ease',
                   textAlign: 'left'
                 }}
               >
                 <div style={{ fontSize: '1.4rem', marginBottom: '0.2rem' }}>{cat.emoji}</div>
-                <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                <div style={{ fontSize: '0.84rem', fontWeight: 600, color: 'var(--text-main)' }}>
                   {t(`expenses.categories.${cat.id.toLowerCase()}`)}
                 </div>
-                <div style={{ fontSize: '0.98rem', fontWeight: 800, color: catCost > 0 ? '#15803d' : '#94a3b8', marginTop: '0.2rem' }}>
+                <div style={{ fontSize: '0.98rem', fontWeight: 800, color: catCost > 0 ? '#15803d' : 'var(--text-muted)', marginTop: '0.2rem' }}>
                   {catCost > 0 ? `₹${formatNumber(catCost)}` : '₹0'}
                 </div>
-                <div style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>
                   {catCount} {catCount === 1 ? t('expenses.entry') : t('expenses.entries')}
                 </div>
               </div>
@@ -709,7 +719,7 @@ export default function ExpenseTrackerPage() {
             {/* Mandi Connect Button */}
             <div style={{ marginBottom: '1rem', padding: '0.75rem', backgroundColor: '#f1f5f9', borderRadius: '8px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-main)' }}>
                   🌾 {t('expenses.production.targetApmc')}
                 </span>
                 <input
@@ -776,7 +786,7 @@ export default function ExpenseTrackerPage() {
             <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
               {m.actual_revenue > 0 ? t('expenses.kpis.actualRevenue') : t('expenses.kpis.expectedRevenue')}
             </div>
-            <div style={{ fontSize: '1.45rem', fontWeight: 800, color: 'var(--text-primary)', marginTop: '0.3rem' }}>
+            <div style={{ fontSize: '1.45rem', fontWeight: 800, color: 'var(--text-main)', marginTop: '0.3rem' }}>
               ₹{formatNumber(m.effective_revenue || 0)}
             </div>
             <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.2rem' }}>
@@ -856,7 +866,7 @@ export default function ExpenseTrackerPage() {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <span style={{ fontSize: '1.2rem' }}>⚖️</span>
-              <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+              <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-main)' }}>
                 {t('expenses.mandiComparison.title')}
               </h3>
             </div>
@@ -878,7 +888,7 @@ export default function ExpenseTrackerPage() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', alignItems: 'center' }}>
             <div>
               <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>{t('expenses.mandiComparison.yourBreakEven')}</div>
-              <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+              <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-main)' }}>
                 {m.break_even_price ? `₹${formatNumber(m.break_even_price)}${t('prediction.perQ')}` : '—'}
               </div>
             </div>
@@ -1003,7 +1013,7 @@ export default function ExpenseTrackerPage() {
       <div className="card" style={{ marginBottom: '1.5rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
           <div>
-            <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+            <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-main)' }}>
               {t('expenses.ledger.title', { count: expenses.length })}
             </h3>
             <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
@@ -1064,7 +1074,7 @@ export default function ExpenseTrackerPage() {
                         {t(`expenses.categories.${item.category.toLowerCase()}`, {}, item.category)}
                       </span>
                     </td>
-                    <td style={{ padding: '0.75rem 0.9rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                    <td style={{ padding: '0.75rem 0.9rem', fontWeight: 600, color: 'var(--text-main)' }}>
                       {item.name}
                     </td>
                     <td style={{ padding: '0.75rem 0.9rem', color: '#64748b', fontSize: '0.82rem' }}>
@@ -1101,7 +1111,7 @@ export default function ExpenseTrackerPage() {
               </tbody>
               <tfoot>
                 <tr style={{ backgroundColor: '#f8fafc', fontWeight: 700, borderTop: '2px solid #cbd5e1' }}>
-                  <td colSpan={4} style={{ padding: '0.85rem 0.9rem', color: 'var(--text-primary)' }}>
+                  <td colSpan={4} style={{ padding: '0.85rem 0.9rem', color: 'var(--text-main)' }}>
                     {t('expenses.ledger.totalCostFooter')}
                   </td>
                   <td style={{ padding: '0.85rem 0.9rem', textAlign: 'right', color: '#d9480f', fontSize: '1.05rem' }}>

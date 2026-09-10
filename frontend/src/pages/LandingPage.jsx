@@ -33,6 +33,28 @@ export default function LandingPage() {
   const { t, language } = useTranslation();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState('top');
+
+  // Track active section on scroll for subtle navbar active state
+  useEffect(() => {
+    const handleScroll = () => {
+      const sections = ['transparency', 'how-it-works', 'features', 'top'];
+      const scrollPosition = window.scrollY + 140;
+
+      for (const sectionId of sections) {
+        const el = document.getElementById(sectionId);
+        if (el && scrollPosition >= el.offsetTop) {
+          setActiveSection(sectionId);
+          return;
+        }
+      }
+      setActiveSection('top');
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // Set document title & meta description for SEO
   useEffect(() => {
@@ -47,7 +69,7 @@ export default function LandingPage() {
       'KissanSaathi helps Indian farmers understand mandi prices, compare markets, track farm expenses, monitor weather and access AI-powered agricultural decision support.';
   }, []);
 
-  const getAuthLink = (path) => (user ? path : `/login?redirect=${encodeURIComponent(path)}`);
+  const getAuthLink = (path) => (user ? path : `/login?redirect=${encodeURIComponent(path)}&reason=feature`);
 
   const featureCards = [
     {
@@ -123,92 +145,133 @@ export default function LandingPage() {
          ============================================================================== */}
       <header className="landing-navbar" role="banner">
         <div className="landing-navbar-inner">
-          {/* Logo & Brand */}
-          <Link to="/" className="landing-brand" aria-label="KissanSaathi Home">
-            <span className="landing-brand-logo">🌾</span>
-            <div className="landing-brand-text">
-              <span className="landing-brand-name">KissanSaathi</span>
-              <span className="landing-brand-sih">{t('landing.hero.badge')}</span>
-            </div>
+          {/* Logo & Brand (Option A: Clean KisanSaathi brand) */}
+          <Link to="/" className="landing-brand" aria-label="KisanSaathi Home">
+            <span className="landing-brand-logo" aria-hidden="true">🌾</span>
+            <span className="landing-brand-name">KisanSaathi</span>
           </Link>
 
           {/* Desktop Navigation Links */}
           <nav className="landing-nav-links" aria-label="Landing Page Navigation">
-            <a href="#top" className="landing-nav-link">{t('landing.nav.home')}</a>
-            <Link to={getAuthLink('/market')} className="landing-nav-link">{t('landing.nav.market')}</Link>
-            <a href="#features" className="landing-nav-link">{t('landing.nav.features')}</a>
-            <a href="#how-it-works" className="landing-nav-link">{t('landing.nav.howItWorks')}</a>
-            <Link to={getAuthLink('/weather')} className="landing-nav-link">{t('landing.nav.weather')}</Link>
-            <a href="#transparency" className="landing-nav-link">{t('landing.nav.about')}</a>
+            <a href="#top" className={`landing-nav-link ${activeSection === 'top' ? 'active' : ''}`}>
+              {t('landing.nav.home')}
+            </a>
+            <Link to={getAuthLink('/market')} className="landing-nav-link">
+              {t('landing.nav.market')}
+            </Link>
+            <a href="#features" className={`landing-nav-link ${activeSection === 'features' ? 'active' : ''}`}>
+              {t('landing.nav.features')}
+            </a>
+            <a href="#how-it-works" className={`landing-nav-link ${activeSection === 'how-it-works' ? 'active' : ''}`}>
+              {t('landing.nav.howItWorks')}
+            </a>
+            <Link to={getAuthLink('/weather')} className="landing-nav-link">
+              {t('landing.nav.weather')}
+            </Link>
+            <a href="#transparency" className={`landing-nav-link ${activeSection === 'transparency' ? 'active' : ''}`}>
+              {t('landing.nav.about')}
+            </a>
           </nav>
 
-          {/* Right Actions: Language Switcher, Auth */}
+          {/* Right Actions: Desktop (Language + Auth) & Mobile Toggle */}
           <div className="landing-nav-actions">
-            <LanguageSwitcher compact={true} />
+            <div className="landing-nav-actions-desktop">
+              <LanguageSwitcher compact={true} className="landing-language-switcher" />
 
-            {user ? (
-              <Link to="/dashboard" className="landing-nav-cta">
-                <Layers size={16} />
-                <span>{t('landing.nav.dashboard')}</span>
-              </Link>
-            ) : (
-              <>
-                <Link to="/login" className="landing-nav-login">
-                  {t('landing.nav.login')}
+              {user ? (
+                <Link to="/dashboard" className="landing-nav-cta">
+                  <Layers size={16} />
+                  <span>{t('landing.nav.dashboard')}</span>
                 </Link>
-                <Link to="/login" className="landing-nav-cta">
-                  <span>{t('landing.nav.getStarted')}</span>
-                  <ChevronRight size={16} />
-                </Link>
-              </>
-            )}
+              ) : (
+                <>
+                  <Link to="/login" className="landing-nav-login">
+                    {t('landing.nav.login')}
+                  </Link>
+                  <Link to="/login" className="landing-nav-cta">
+                    <span>{t('landing.nav.getStarted')}</span>
+                    <span className="cta-arrow" aria-hidden="true">→</span>
+                  </Link>
+                </>
+              )}
+            </div>
 
             {/* Mobile Hamburger Toggle */}
             <button
+              type="button"
               className="landing-hamburger-btn"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               aria-label="Toggle navigation menu"
+              aria-expanded={mobileMenuOpen}
             >
-              {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+              {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
             </button>
           </div>
         </div>
 
         {/* Mobile Dropdown Menu */}
         {mobileMenuOpen && (
-          <div className="landing-mobile-menu">
-            <a href="#top" className="landing-mobile-link" onClick={() => setMobileMenuOpen(false)}>
-              {t('landing.nav.home')}
-            </a>
-            <Link to={getAuthLink('/market')} className="landing-mobile-link" onClick={() => setMobileMenuOpen(false)}>
-              {t('landing.nav.market')}
-            </Link>
-            <a href="#features" className="landing-mobile-link" onClick={() => setMobileMenuOpen(false)}>
-              {t('landing.nav.features')}
-            </a>
-            <a href="#how-it-works" className="landing-mobile-link" onClick={() => setMobileMenuOpen(false)}>
-              {t('landing.nav.howItWorks')}
-            </a>
-            <Link to={getAuthLink('/weather')} className="landing-mobile-link" onClick={() => setMobileMenuOpen(false)}>
-              {t('landing.nav.weather')}
-            </Link>
-            <a href="#transparency" className="landing-mobile-link" onClick={() => setMobileMenuOpen(false)}>
-              {t('landing.nav.about')}
-            </a>
-            {user ? (
-              <Link to="/dashboard" className="btn-landing-primary" onClick={() => setMobileMenuOpen(false)} style={{ width: '100%' }}>
-                {t('landing.nav.dashboard')}
+          <div className="landing-mobile-menu" role="dialog" aria-modal="true" aria-label="Mobile Navigation">
+            <nav className="landing-mobile-nav-links">
+              <a href="#top" className="landing-mobile-link" onClick={() => setMobileMenuOpen(false)}>
+                {t('landing.nav.home')}
+              </a>
+              <Link to={getAuthLink('/market')} className="landing-mobile-link" onClick={() => setMobileMenuOpen(false)}>
+                {t('landing.nav.market')}
               </Link>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', marginTop: '0.5rem' }}>
-                <Link to="/login" className="btn-landing-secondary" onClick={() => setMobileMenuOpen(false)}>
-                  {t('landing.nav.login')}
+              <a href="#features" className="landing-mobile-link" onClick={() => setMobileMenuOpen(false)}>
+                {t('landing.nav.features')}
+              </a>
+              <a href="#how-it-works" className="landing-mobile-link" onClick={() => setMobileMenuOpen(false)}>
+                {t('landing.nav.howItWorks')}
+              </a>
+              <Link to={getAuthLink('/weather')} className="landing-mobile-link" onClick={() => setMobileMenuOpen(false)}>
+                {t('landing.nav.weather')}
+              </Link>
+              <a href="#transparency" className="landing-mobile-link" onClick={() => setMobileMenuOpen(false)}>
+                {t('landing.nav.about')}
+              </a>
+            </nav>
+
+            {/* Mobile Language Switcher */}
+            <div className="landing-mobile-lang-row">
+              <span className="landing-mobile-lang-label">
+                🌐 {language === 'hi' ? 'भाषा' : language === 'mr' ? 'भाषा' : 'Language'}:
+              </span>
+              <LanguageSwitcher compact={false} className="landing-mobile-lang-switcher" />
+            </div>
+
+            {/* Mobile Auth Actions */}
+            <div className="landing-mobile-auth-actions">
+              {user ? (
+                <Link
+                  to="/dashboard"
+                  className="landing-mobile-cta"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <Layers size={18} />
+                  <span>{t('landing.nav.dashboard')}</span>
                 </Link>
-                <Link to="/login" className="btn-landing-primary" onClick={() => setMobileMenuOpen(false)}>
-                  {t('landing.nav.getStarted')}
-                </Link>
-              </div>
-            )}
+              ) : (
+                <>
+                  <Link
+                    to="/login"
+                    className="landing-mobile-login"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    {t('landing.nav.login')}
+                  </Link>
+                  <Link
+                    to="/login"
+                    className="landing-mobile-cta"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <span>{t('landing.nav.getStarted')}</span>
+                    <span aria-hidden="true">→</span>
+                  </Link>
+                </>
+              )}
+            </div>
           </div>
         )}
       </header>
@@ -603,6 +666,8 @@ export default function LandingPage() {
                   <div className="chat-bubble-ai">
                     {language === 'hi'
                       ? 'आज आगरा मंडी में गेहूं का मॉडल भाव ₹2,450/क्विंटल दर्ज हुआ है। आवक सामान्य है और भाव पिछले सप्ताह से स्थिर बने हुए हैं।'
+                      : language === 'mr'
+                      ? 'आज आग्रा बाजार समितीत गव्हाचा सरासरी भाव ₹२,४५०/क्विंटल नोंदवला गेला आहे. आवक सामान्य असून मागील आठवड्यापासून भाव स्थिर आहेत.'
                       : 'Today, the modal price for Wheat in Agra APMC is recorded at ₹2,450 per quintal. Market arrivals are normal with steady benchmark prices.'}
                   </div>
                 </div>
@@ -655,6 +720,9 @@ export default function LandingPage() {
             </span>
             <span style={{ background: 'var(--lp-mint)', color: 'var(--lp-primary)', padding: '0.35rem 0.85rem', borderRadius: 'var(--lp-radius-pill)', fontSize: '0.85rem', fontWeight: 700 }}>
               ✓ {t('landing.multilingual.langHi')}
+            </span>
+            <span style={{ background: 'var(--lp-mint)', color: 'var(--lp-primary)', padding: '0.35rem 0.85rem', borderRadius: 'var(--lp-radius-pill)', fontSize: '0.85rem', fontWeight: 700 }}>
+              ✓ {t('landing.multilingual.langMr')}
             </span>
             <span style={{ background: 'var(--lp-mint)', color: 'var(--lp-primary)', padding: '0.35rem 0.85rem', borderRadius: 'var(--lp-radius-pill)', fontSize: '0.85rem', fontWeight: 700 }}>
               ✓ {t('landing.multilingual.langHinglish')}

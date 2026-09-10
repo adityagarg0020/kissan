@@ -137,15 +137,17 @@ export default function DashboardPage() {
       {/* 1. Welcome / Farmer Hero Banner */}
       <section className="dashboard-hero-card">
         <div className="dashboard-hero-content">
-          <div className="sih-tag">
-            {t('common.sihPrototype')}
-          </div>
-          {user && (
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', backgroundColor: 'rgba(43, 138, 62, 0.12)', padding: '0.25rem 0.65rem', borderRadius: '999px', fontSize: '0.8rem', color: 'var(--primary-deep)', fontWeight: 700, marginBottom: '0.5rem' }}>
-              <span>🌱</span> Namaste, {profile?.full_name || 'Farmer Brother'}!
-              {selectedFarm && <span> &bull; 🌾 {selectedFarm.farm_name} ({selectedFarm.area} {selectedFarm.area_unit})</span>}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap', marginBottom: '0.6rem' }}>
+            <div className="sih-tag">
+              {t('common.sihPrototype')}
             </div>
-          )}
+            {user && (
+              <div className="sih-tag">
+                <span>🌱</span> {t('common.greeting', 'Namaste')}, {profile?.full_name || t('profile.personal.farmerBrother', 'Farmer Brother')}!
+                {selectedFarm && <span> &bull; 🌾 {selectedFarm.farm_name} ({selectedFarm.area} {selectedFarm.area_unit})</span>}
+              </div>
+            )}
+          </div>
           <h1 className="dashboard-greeting">
             {t('dashboard.welcomeTitle')}
           </h1>

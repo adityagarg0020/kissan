@@ -21,7 +21,7 @@ export default function ProtectedRoute({ children }) {
 
   if (!user) {
     const redirectUrl = encodeURIComponent(location.pathname + location.search);
-    return <Navigate to={`/login?redirect=${redirectUrl}`} replace />;
+    return <Navigate to={`/login?redirect=${redirectUrl}&reason=feature`} replace />;
   }
 
   return children;
