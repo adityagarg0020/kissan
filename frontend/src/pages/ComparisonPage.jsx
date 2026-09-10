@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Scale, CheckSquare, Square, TrendingUp, TrendingDown, ArrowUpDown, Filter } from 'lucide-react';
 import { useMarket } from '../context/MarketContext';
+import { useTranslation } from '../i18n';
 import CropSelector from '../components/common/CropSelector';
 import StateSelector from '../components/common/StateSelector';
 import DistrictSelector from '../components/common/DistrictSelector';
@@ -16,6 +17,7 @@ export default function ComparisonPage() {
     states,
     districts
   } = useMarket();
+  const { t, formatNumber, formatDate } = useTranslation();
 
   const [availableMandis, setAvailableMandis] = useState([]);
   const [selectedMandiNames, setSelectedMandiNames] = useState([]);
@@ -93,10 +95,10 @@ export default function ComparisonPage() {
       {/* Page Header */}
       <div className="page-header-box">
         <h1 className="page-title">
-          ⚖️ Multi-Mandi Price Comparison
+          ⚖️ {t('comparison.pageTitle')}
         </h1>
         <p className="page-subtitle">
-          Compare current auction prices across multiple mandis simultaneously to identify market price differences and maximize selling realization.
+          {t('comparison.pageSubtitle')}
         </p>
       </div>
 
@@ -104,7 +106,7 @@ export default function ComparisonPage() {
       <div className="card" style={{ marginBottom: '1.5rem' }}>
         <div className="card-header">
           <div className="card-title">
-            <Filter size={18} color="var(--primary)" /> Filter Mandis to Compare
+            <Filter size={18} color="var(--primary)" /> {t('common.actions.filter')}
           </div>
         </div>
 
@@ -134,13 +136,13 @@ export default function ComparisonPage() {
       </div>
 
       {loading && (
-        <LoadingState message={`Finding mandis trading ${filters.commodity}...`} />
+        <LoadingState message={t('common.states.loadingData')} />
       )}
 
       {!loading && availableMandis.length === 0 && (
         <EmptyState
-          title={`No Mandis Found for ${filters.commodity}`}
-          message="Try selecting an adjoining district or state to find active markets."
+          title={t('comparison.noComparisonData')}
+          message={t('common.states.tryBroadening')}
         />
       )}
 
@@ -151,10 +153,10 @@ export default function ComparisonPage() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem', flexWrap: 'wrap', gap: '0.5rem' }}>
               <div>
                 <span style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--primary-dark)' }}>
-                  Select Mandis to Compare ({selectedMandiNames.length} of {Math.min(availableMandis.length, 8)} selected)
+                  {t('comparison.selectMandis', { selected: selectedMandiNames.length, max: Math.min(availableMandis.length, 8) })}
                 </span>
                 <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                  Check 2 to 8 markets to compare side-by-side
+                  {t('comparison.selectMandisHint')}
                 </div>
               </div>
 
@@ -163,7 +165,7 @@ export default function ComparisonPage() {
                 onClick={selectAll}
                 style={{ fontSize: '0.78rem', padding: '0.3rem 0.65rem' }}
               >
-                Select First 8
+                {t('comparison.selectFirst8')}
               </button>
             </div>
 
@@ -180,7 +182,7 @@ export default function ComparisonPage() {
                     {isChecked ? <CheckSquare size={16} color="var(--primary)" /> : <Square size={16} color="var(--text-muted)" />}
                     <span style={{ fontWeight: 600 }}>{m.market}</span>
                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>({m.district})</span>
-                    <span style={{ fontWeight: 700, marginLeft: 'auto', color: 'var(--primary-dark)' }}>₹{m.modal_price}</span>
+                    <span style={{ fontWeight: 700, marginLeft: 'auto', color: 'var(--primary-dark)' }}>₹{formatNumber(m.modal_price)}</span>
                   </button>
                 );
               })}
@@ -193,10 +195,10 @@ export default function ComparisonPage() {
               {/* Highest Price */}
               <div className="comp-stat-card high">
                 <div className="comp-stat-title">
-                  <TrendingUp size={16} /> Highest Current Price
+                  <TrendingUp size={16} /> {t('comparison.stats.highestPrice')}
                 </div>
                 <div className="comp-stat-value">
-                  ₹{highestPrice.toLocaleString('en-IN')}<span style={{ fontSize: '0.85rem', fontWeight: 500 }}>/q</span>
+                  ₹{formatNumber(highestPrice)}<span style={{ fontSize: '0.85rem', fontWeight: 500 }}>{t('market.priceCard.perQuintal')}</span>
                 </div>
                 <div className="comp-stat-sub">
                   {highestMandi?.market} ({highestMandi?.district})
@@ -206,10 +208,10 @@ export default function ComparisonPage() {
               {/* Lowest Price */}
               <div className="comp-stat-card low">
                 <div className="comp-stat-title">
-                  <TrendingDown size={16} /> Lowest Current Price
+                  <TrendingDown size={16} /> {t('comparison.stats.lowestPrice')}
                 </div>
                 <div className="comp-stat-value">
-                  ₹{lowestPrice.toLocaleString('en-IN')}<span style={{ fontSize: '0.85rem', fontWeight: 500 }}>/q</span>
+                  ₹{formatNumber(lowestPrice)}<span style={{ fontSize: '0.85rem', fontWeight: 500 }}>{t('market.priceCard.perQuintal')}</span>
                 </div>
                 <div className="comp-stat-sub">
                   {lowestMandi?.market} ({lowestMandi?.district})
@@ -219,13 +221,13 @@ export default function ComparisonPage() {
               {/* Price Difference / Spread */}
               <div className="comp-stat-card spread">
                 <div className="comp-stat-title">
-                  <ArrowUpDown size={16} /> Current Price Difference
+                  <ArrowUpDown size={16} /> {t('comparison.currentPriceDifference')}
                 </div>
                 <div className="comp-stat-value">
-                  ₹{priceSpread.toLocaleString('en-IN')}<span style={{ fontSize: '0.85rem', fontWeight: 500 }}>/q</span>
+                  ₹{formatNumber(priceSpread)}<span style={{ fontSize: '0.85rem', fontWeight: 500 }}>{t('market.priceCard.perQuintal')}</span>
                 </div>
                 <div className="comp-stat-sub">
-                  {spreadPercent > 0 ? `+${spreadPercent}% premium between markets` : 'Identical pricing'}
+                  {spreadPercent > 0 ? t('comparison.premiumBetween', { percent: spreadPercent }) : t('comparison.identicalPricing')}
                 </div>
               </div>
             </div>
@@ -235,9 +237,9 @@ export default function ComparisonPage() {
           <div className="card" style={{ marginBottom: '1.5rem' }}>
             <div className="card-header">
               <div className="card-title">
-                📊 Modal Price Visual Comparison ({filters.commodity})
+                📊 {t('comparison.visualComparison', { commodity: filters.commodity })}
               </div>
-              <span className="card-badge">{comparedMandis.length} Mandis</span>
+              <span className="card-badge">{t('comparison.mandisCount', { count: comparedMandis.length })}</span>
             </div>
 
             <ComparisonChart mandis={comparedMandis} />
@@ -247,7 +249,7 @@ export default function ComparisonPage() {
           <div className="card">
             <div className="card-header">
               <div className="card-title">
-                📋 Side-by-Side Mandi Comparison Details
+                📋 {t('comparison.detailsTableTitle')}
               </div>
             </div>
 
@@ -255,13 +257,13 @@ export default function ComparisonPage() {
               <table className="mandi-table">
                 <thead>
                   <tr>
-                    <th>Mandi / Market</th>
-                    <th>District & State</th>
-                    <th style={{ textAlign: 'right' }}>Min Price</th>
-                    <th style={{ textAlign: 'right' }}>Max Price</th>
-                    <th style={{ textAlign: 'right' }}>Modal Price</th>
-                    <th style={{ textAlign: 'right' }}>vs Lowest</th>
-                    <th>Arrival Date</th>
+                    <th>{t('comparison.table.columns.mandi')}</th>
+                    <th>{t('comparison.table.columns.district')}</th>
+                    <th style={{ textAlign: 'right' }}>{t('market.priceCard.minRate')}</th>
+                    <th style={{ textAlign: 'right' }}>{t('market.priceCard.maxRate')}</th>
+                    <th style={{ textAlign: 'right' }}>{t('market.priceCard.modalPrice')}</th>
+                    <th style={{ textAlign: 'right' }}>{t('comparison.vsLowest')}</th>
+                    <th>{t('market.results.columns.arrivalDate')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -272,25 +274,25 @@ export default function ComparisonPage() {
                     return (
                       <tr key={m.market} style={{ backgroundColor: isHighest ? 'var(--primary-wash)' : 'transparent' }}>
                         <td style={{ fontWeight: 700, color: 'var(--primary-dark)' }}>
-                          {m.market} {isHighest && <span className="card-badge" style={{ backgroundColor: '#d8f3dc', color: 'var(--primary-dark)', marginLeft: '0.3rem' }}>HIGHEST</span>}
+                          {m.market} {isHighest && <span className="card-badge" style={{ backgroundColor: '#d8f3dc', color: 'var(--primary-dark)', marginLeft: '0.3rem' }}>{t('comparison.highest')}</span>}
                         </td>
                         <td style={{ fontSize: '0.84rem', color: 'var(--text-secondary)' }}>
                           {m.district}, {m.state}
                         </td>
                         <td style={{ textAlign: 'right', color: 'var(--text-muted)', fontSize: '0.86rem' }}>
-                          ₹{m.min_price}
+                          ₹{formatNumber(m.min_price)}
                         </td>
                         <td style={{ textAlign: 'right', color: 'var(--primary-dark)', fontSize: '0.86rem' }}>
-                          ₹{m.max_price}
+                          ₹{formatNumber(m.max_price)}
                         </td>
                         <td style={{ textAlign: 'right', fontWeight: 800, color: 'var(--primary)', fontSize: '1.1rem', fontFamily: 'var(--font-display)' }}>
-                          ₹{Number(m.modal_price).toLocaleString('en-IN')}<span style={{ fontSize: '0.75rem', fontWeight: 500 }}>/q</span>
+                          ₹{formatNumber(m.modal_price)}<span style={{ fontSize: '0.75rem', fontWeight: 500 }}>{t('market.priceCard.perQuintal')}</span>
                         </td>
                         <td style={{ textAlign: 'right', fontWeight: 600, fontSize: '0.84rem', color: diff > 0 ? '#2b8a3e' : 'var(--text-muted)' }}>
-                          {diff > 0 ? `+₹${diff.toLocaleString('en-IN')}` : '—'}
+                          {diff > 0 ? `+₹${formatNumber(diff)}` : '—'}
                         </td>
                         <td style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-                          {m.arrival_date}
+                          {formatDate(m.arrival_date)}
                         </td>
                       </tr>
                     );

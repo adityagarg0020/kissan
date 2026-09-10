@@ -1,8 +1,12 @@
 import React from 'react';
 import { Bell, Trash2 } from 'lucide-react';
+import { useTranslation } from '../../i18n';
 
 export default function AlertCard({ alert, onDelete }) {
+  const { t, formatNumber } = useTranslation();
   if (!alert) return null;
+
+  const formattedPrice = alert.target_price ? formatNumber(alert.target_price) : '';
 
   return (
     <div
@@ -24,10 +28,10 @@ export default function AlertCard({ alert, onDelete }) {
           🌾 {alert.commodity} {alert.state ? `(${alert.state})` : ''}
         </div>
         <div style={{ color: 'var(--text-secondary)', marginTop: '0.2rem', fontSize: '0.84rem' }}>
-          {alert.alert_type === 'above' && `Notify if price rises above ₹${Number(alert.target_price).toLocaleString('en-IN')}/q`}
-          {alert.alert_type === 'below' && `Notify if price drops below ₹${Number(alert.target_price).toLocaleString('en-IN')}/q`}
-          {alert.alert_type === 'movement' && `Notify on > ${alert.threshold_pct}% daily price shift`}
-          {alert.alert_type === 'forecast' && `Notify when AI forecast trajectory shifts`}
+          {alert.alert_type === 'above' && t('alerts.active.notifyAbove', { price: formattedPrice })}
+          {alert.alert_type === 'below' && t('alerts.active.notifyBelow', { price: formattedPrice })}
+          {alert.alert_type === 'movement' && t('alerts.active.notifyMovement', { pct: alert.threshold_pct })}
+          {alert.alert_type === 'forecast' && t('alerts.active.notifyForecast')}
         </div>
         {alert.message && (
           <div style={{ fontSize: '0.78rem', color: 'var(--accent-red)', marginTop: '0.2rem', fontWeight: 600 }}>
@@ -38,14 +42,14 @@ export default function AlertCard({ alert, onDelete }) {
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
         <span className="card-badge" style={{ fontSize: '0.72rem', textTransform: 'uppercase' }}>
-          {alert.status || 'Active'}
+          {alert.status === 'Triggered' ? t('alerts.active.statusTriggered') : t('alerts.active.statusActive')}
         </span>
         {onDelete && (
           <button
             onClick={() => onDelete(alert.id)}
             style={{ background: 'none', border: 'none', color: '#c92a2a', cursor: 'pointer', padding: '0.3rem', borderRadius: '4px' }}
-            title="Delete Alert"
-            aria-label="Delete Alert"
+            title={t('alerts.active.deleteAlert')}
+            aria-label={t('alerts.active.deleteAlert')}
           >
             <Trash2 size={16} />
           </button>

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from '../../i18n';
 
 export default function DistrictSelector({
   value,
@@ -6,13 +7,17 @@ export default function DistrictSelector({
   districts = [],
   disabled = false,
   id = 'district-selector',
-  label = 'District',
+  label,
   showAllOption = false,
-  placeholder = '-- Select District --'
+  placeholder
 }) {
+  const { t } = useTranslation();
+  const displayLabel = label !== undefined ? label : t('market.filters.district');
+  const defaultPlaceholder = placeholder || `-- ${t('common.actions.select')} --`;
+
   return (
     <div className="form-group">
-      {label && <label className="form-label" htmlFor={id}>{label}</label>}
+      {displayLabel && <label className="form-label" htmlFor={id}>{displayLabel}</label>}
       <select
         id={id}
         className="form-select"
@@ -20,8 +25,8 @@ export default function DistrictSelector({
         onChange={(e) => onChange(e.target.value)}
         disabled={disabled}
       >
-        {showAllOption && <option value="">-- All Districts --</option>}
-        {!showAllOption && <option value="">{placeholder}</option>}
+        {showAllOption && <option value="">-- {t('market.filters.allDistricts')} --</option>}
+        {!showAllOption && <option value="">{defaultPlaceholder}</option>}
         {districts.map((d) => (
           <option key={d} value={d}>{d}</option>
         ))}

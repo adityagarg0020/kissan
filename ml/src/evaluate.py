@@ -14,7 +14,7 @@ def evaluate_summary():
         data = json.load(f)
         
     print("=" * 60)
-    print("KISANSAATHI ML MODEL EVALUATION REPORT")
+    print("KISSANSAATHI ML MODEL EVALUATION REPORT")
     print(f"Train Period: {data.get('train_range')}")
     print(f"Val Period:   {data.get('val_range')}")
     print(f"Test Period:  {data.get('test_range')} (Chronological Holdout)")

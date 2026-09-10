@@ -7,6 +7,14 @@ const historicalService = require('../services/historicalService');
 const predictionService = require('../services/predictionService');
 const alertService = require('../services/alertService');
 const geocodeService = require('../services/geocodeService');
+const dataGovService = require('../services/dataGovService');
+const chatService = require('../services/chatService');
+const autoTrainService = require('../services/autoTrainService');
+const expenseRoutes = require('./expenseRoutes');
+const { optionalAuth } = require('../middleware/authMiddleware');
+
+// Mount expenses submodule
+router.use('/expenses', expenseRoutes);
 
 // Reverse Geocoding for GPS Location
 router.get('/reverse-geocode', async (req, res) => {
@@ -233,27 +241,131 @@ router.get('/forecast', async (req, res) => {
   }
 });
 
-// 11. Alerts Endpoints
-router.get('/alerts', (req, res) => {
-  res.json({ success: true, alerts: alertService.getAlerts() });
-});
-
-router.post('/alerts', (req, res) => {
+// Alias: GET /api/market/prediction
+router.get('/prediction', async (req, res) => {
   try {
-    const newAlert = alertService.createAlert(req.body);
-    res.json({ success: true, alert: newAlert });
+    const { commodity, state, current_price, horizon_days } = req.query;
+    if (!commodity) {
+      return res.status(400).json({ success: false, error: 'commodity query parameter is required' });
+    }
+    const forecast = await predictionService.getPrediction({
+      commodity,
+      state: state || 'All India',
+      currentPrice: current_price ? parseFloat(current_price) : null,
+      horizonDays: horizon_days ? parseInt(horizon_days, 10) : 7
+    });
+    if (forecast.status === 'failed' || forecast.success === false) {
+      return res.status(forecast.status_code || 404).json(forecast);
+    }
+    res.json({ success: true, ...forecast });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
 });
 
-router.delete('/alerts/:id', (req, res) => {
+// 11. Alerts Endpoints
+router.get('/alerts', optionalAuth, async (req, res) => {
   try {
-    const result = alertService.deleteAlert(req.params.id);
+    const alerts = await alertService.getAlerts(req.user?.id);
+    res.json({ success: true, alerts });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+router.post('/alerts', optionalAuth, async (req, res) => {
+  try {
+    const newAlert = await alertService.createAlert({ ...req.body, user_id: req.user?.id });
+    res.status(201).json({ success: true, alert: newAlert });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+router.delete('/alerts/:id', optionalAuth, async (req, res) => {
+  try {
+    const result = await alertService.deleteAlert(req.params.id, req.user?.id);
     res.json({ success: true, ...result });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
 });
 
+// 12. Data.gov.in Live Synchronization Endpoints
+router.get('/sync-status', (req, res) => {
+  res.json({ success: true, ...dataGovService.getStatus() });
+});
+
+router.post('/sync', async (req, res) => {
+  try {
+    const limit = req.body?.limit ? parseInt(req.body.limit, 10) : 500;
+    const result = await dataGovService.syncLatestMandiData({ limit });
+    res.json({ success: true, ...result });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+router.post('/reload', async (req, res) => {
+  try {
+    const count = await dataService.reloadMandiData();
+    res.json({ success: true, message: `Datasets reloaded successfully`, total_records: count });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 12b. Autonomous Self-Training Engine Endpoints
+router.get('/auto-train/status', (req, res) => {
+  res.json({ success: true, ...autoTrainService.getStatus() });
+});
+
+router.post('/auto-train/trigger', async (req, res) => {
+  try {
+    const forceTrain = Boolean(req.body?.forceTrain);
+    const fetchCount = req.body?.fetchCount ? parseInt(req.body.fetchCount, 10) : 3000;
+    
+    // Execute cycle asynchronously or await based on query/body
+    const isAsync = req.query?.async === 'true' || req.body?.async === true;
+    if (isAsync) {
+      autoTrainService.executeCycle({ reason: 'manual_trigger', forceTrain, fetchCount }).catch(err => {
+        console.error('[AutoTrainAPI] Background run error:', err);
+      });
+      return res.json({
+        success: true,
+        message: 'Autonomous sync and training initiated in background.',
+        currentStatus: autoTrainService.getStatus()
+      });
+    }
+
+    const result = await autoTrainService.executeCycle({ reason: 'manual_trigger', forceTrain, fetchCount });
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 13. OpenAI AI Assistant Chat Endpoint
+router.post('/chat', async (req, res) => {
+  try {
+    const { message, conversationHistory, contextLocation, contextCrop } = req.body;
+    if (!message || !message.trim()) {
+      return res.status(400).json({ success: false, error: 'message string is required in body' });
+    }
+
+    const response = await chatService.handleChat({
+      message,
+      conversationHistory,
+      contextLocation,
+      contextCrop
+    });
+
+    res.json({ success: true, ...response });
+  } catch (err) {
+    console.error('[ChatAPI] Error processing chat:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 module.exports = router;
+

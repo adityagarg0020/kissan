@@ -125,15 +125,16 @@ export function MarketProvider({ children }) {
       method: 'GPS'
     });
 
-    // Only update filter dropdowns if district/state matched known options in dataset
-    if (matchedInDataset && state && district) {
+    // Update filters to match GPS resolved location
+    if (state) {
       setFilters(prev => ({
         ...prev,
         state,
-        district,
+        district: district || prev.district,
         market: ''
       }));
     }
+
   };
 
   // General updater for backward compatibility

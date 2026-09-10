@@ -18,7 +18,7 @@ def mean_absolute_percentage_error(y_true, y_pred):
 
 def train_and_evaluate_models():
     print("=" * 75)
-    print("KISANSAATHI ML TRAINING PIPELINE (CHRONOLOGICAL TIME-SERIES)")
+    print("KISSANSAATHI ML TRAINING PIPELINE (CHRONOLOGICAL TIME-SERIES)")
     print("=" * 75)
     
     # 1. Load data

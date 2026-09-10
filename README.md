@@ -1,4 +1,4 @@
-# 🌾 KisanSaathi
+# 🌾 KissanSaathi
 
 > **Agricultural Market Intelligence, Price Discovery & AI Decision Support for Indian Farmers**  
 > *Developed for Smart India Hackathon (SIH Problem Statement SIH26127)*
@@ -7,7 +7,7 @@
 
 ## 📌 Project Overview
 
-KisanSaathi is a multi-page agricultural market intelligence platform designed to empower Indian farmers with transparent APMC mandi auction rates, nearest-market distance matrix calculations, 10-year historical AgMarknet price benchmarks, and machine learning price prediction models.
+KissanSaathi is a multi-page agricultural market intelligence platform designed to empower Indian farmers with transparent APMC mandi auction rates, nearest-market distance matrix calculations, 10-year historical AgMarknet price benchmarks, and machine learning price prediction models.
 
 ---
 

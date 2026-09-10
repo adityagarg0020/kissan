@@ -1,18 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { Wheat, Calendar } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Wheat, Calendar, Wallet } from 'lucide-react';
 import { useMarket } from '../context/MarketContext';
+import { useTranslation } from '../i18n';
 import CropSelector from '../components/common/CropSelector';
 import StateSelector from '../components/common/StateSelector';
 import LoadingState from '../components/common/LoadingState';
 import EmptyState from '../components/common/EmptyState';
 
 export default function SellDecisionPage() {
+  const { t, formatNumber } = useTranslation();
   const { filters, updateFilters, commodities, states } = useMarket();
 
   const [selectedState, setSelectedState] = useState(filters.state || 'Uttar Pradesh');
   const [currentPriceData, setCurrentPriceData] = useState(null);
   const [historicalData, setHistoricalData] = useState(null);
   const [forecastData, setForecastData] = useState(null);
+  const [expenseSummary, setExpenseSummary] = useState(null);
   const [loading, setLoading] = useState(false);
 
   // Fetch current price, historical pattern, and forecast concurrently
@@ -33,9 +37,10 @@ export default function SellDecisionPage() {
     Promise.all([
       fetch(`/api/market/current-price?${priceParams.toString()}`).then(r => r.json()),
       fetch(`/api/market/historical-analysis?${histParams.toString()}`).then(r => r.json()),
-      fetch(`/api/market/forecast?commodity=${filters.commodity}&state=${selectedState || 'Uttar Pradesh'}`).then(r => r.json())
+      fetch(`/api/market/forecast?commodity=${filters.commodity}&state=${selectedState || 'Uttar Pradesh'}`).then(r => r.json()),
+      fetch(`/api/expenses/summary?crop=${encodeURIComponent(filters.commodity)}`).then(r => r.json()).catch(() => ({ has_records: false }))
     ])
-      .then(([pRes, hRes, fRes]) => {
+      .then(([pRes, hRes, fRes, eRes]) => {
         if (pRes.success && pRes.data) setCurrentPriceData(pRes.data);
         else setCurrentPriceData(null);
 
@@ -45,6 +50,9 @@ export default function SellDecisionPage() {
         if (fRes.success) setForecastData(fRes);
         else setForecastData(null);
 
+        if (eRes && eRes.success && eRes.has_records) setExpenseSummary(eRes);
+        else setExpenseSummary(null);
+
         setLoading(false);
       })
       .catch(err => {
@@ -53,40 +61,59 @@ export default function SellDecisionPage() {
       });
   }, [filters.commodity, selectedState]);
 
-  // Determine synthesis recommendation
-  const currentModal = currentPriceData?.modal_price || 2450;
-  const histAvg = historicalData?.trend?.summary?.average_price || 2100;
+  // Determine synthesis recommendation from verified backend data
+  const currentModal = currentPriceData?.modal_price || null;
+  const histAvg = historicalData?.trend?.summary?.average_price || null;
   const forecastTrend = forecastData?.trend || 'Stable';
   const volatilityCat = historicalData?.volatility?.category || 'Moderate';
-  const bestMonthName = historicalData?.best_month?.best_month?.month_name || 'September';
+  const bestMonthName = historicalData?.best_month?.best_month?.month_name || null;
 
-  // Recommendation logic
+  // Recommendation logic synchronized with backend ML decision support
   let recommendationType = 'stable';
-  let recommendationTitle = '⚖️ Market Appears Relatively Stable';
+  let recommendationTitle = t('sellDecision.recTitles.stable');
   let rationaleExplanation = '';
-  let favorableWindow = 'Flexible throughout the coming 5–7 days';
+  let favorableWindow = t('sellDecision.windows.stable');
 
-  const priceDiffPct = Math.round(((currentModal - histAvg) / histAvg) * 100);
+  const priceDiffPct = (currentModal && histAvg && histAvg > 0)
+    ? Math.round(((currentModal - histAvg) / histAvg) * 100)
+    : null;
 
-  if (!forecastData && !historicalData) {
+  if (!currentPriceData && !historicalData && !forecastData) {
     recommendationType = 'insufficient';
-    recommendationTitle = '⚠️ Insufficient Data';
-    rationaleExplanation = 'Not enough recent mandi arrivals or historical series are available to generate a reliable sell/wait recommendation. Please monitor local mandi auctions.';
-  } else if (forecastTrend === 'Increasing' && priceDiffPct < 25) {
-    recommendationType = 'wait';
-    recommendationTitle = '🌱 Potentially Favorable to Wait';
-    rationaleExplanation = `AI 7-day forecast indicates an upward price trajectory (+${forecastData?.predicted_change_pct || '1.5'}%) in coming days, while current rate (₹${currentModal.toLocaleString('en-IN')}) is within reasonable range of historical peaks. If holding and storage facilities are secure, monitoring upcoming auction quotes may be advantageous.`;
-    favorableWindow = 'Next 4–7 days (monitor peak arrivals)';
-  } else if (currentModal > histAvg * 1.12 && (forecastTrend === 'Decreasing' || forecastTrend === 'Stable')) {
+    recommendationTitle = t('sellDecision.recTitles.insufficient');
+    rationaleExplanation = t('sellDecision.rationales.insufficient');
+    favorableWindow = t('sellDecision.windows.insufficient');
+  } else if (forecastData?.decision_support) {
+    // Ground directly in backend ML decision support
+    const backendRec = forecastData.decision_support.recommendation;
+    if (backendRec.toLowerCase().includes('wait')) {
+      recommendationType = 'wait';
+      recommendationTitle = t('sellDecision.recTitles.wait');
+      favorableWindow = t('sellDecision.windows.wait');
+    } else if (backendRec.toLowerCase().includes('sell')) {
+      recommendationType = 'sell';
+      recommendationTitle = t('sellDecision.recTitles.sell');
+      favorableWindow = t('sellDecision.windows.sell');
+    } else {
+      recommendationType = 'stable';
+      recommendationTitle = t('sellDecision.recTitles.stable');
+      favorableWindow = t('sellDecision.windows.stable');
+    }
+    rationaleExplanation = forecastData.decision_support.rationale;
+  } else if (priceDiffPct !== null && priceDiffPct > 15) {
     recommendationType = 'sell';
-    recommendationTitle = '⚡ Potentially Favorable to Sell Now';
-    rationaleExplanation = `Current price of ₹${currentModal.toLocaleString('en-IN')}/q is relatively high (+${priceDiffPct}%) compared with the 10-year historical pattern of ₹${histAvg.toLocaleString('en-IN')}/q, while the available forecast does not indicate a strong expected increase. Selling in current sessions avoids storage risks and potential arrival influx.`;
-    favorableWindow = 'Immediate sessions (next 1–3 days)';
+    recommendationTitle = t('sellDecision.recTitles.sell');
+    rationaleExplanation = t('sellDecision.rationales.sellHigh', {
+      current: formatNumber(currentModal),
+      diff: priceDiffPct,
+      avg: formatNumber(histAvg)
+    });
+    favorableWindow = t('sellDecision.windows.immediate');
   } else {
     recommendationType = 'stable';
-    recommendationTitle = '⚖️ Market Appears Relatively Stable';
-    rationaleExplanation = `Current modal price of ₹${currentModal.toLocaleString('en-IN')}/q is tracking close to historical benchmarks (within ±${Math.abs(priceDiffPct)}%), with expected steady price movement. The decision depends primarily on your immediate cash requirements, storage costs, and transport availability.`;
-    favorableWindow = 'Flexible throughout the coming week';
+    recommendationTitle = t('sellDecision.recTitles.stable');
+    rationaleExplanation = t('sellDecision.rationales.stable');
+    favorableWindow = t('sellDecision.windows.flexible');
   }
 
   return (
@@ -94,10 +121,10 @@ export default function SellDecisionPage() {
       {/* Page Header */}
       <div className="page-header-box">
         <h1 className="page-title">
-          🌾 Sell Decision Support
+          {t('sellDecision.pageTitle')}
         </h1>
         <p className="page-subtitle">
-          Data-backed guidance comparing current auction rates against 10-year historical baselines and machine learning forecast trends to help you choose the best selling window.
+          {t('sellDecision.pageSubtitle')}
         </p>
       </div>
 
@@ -105,7 +132,7 @@ export default function SellDecisionPage() {
       <div className="card" style={{ marginBottom: '1.5rem' }}>
         <div className="card-header">
           <div className="card-title">
-            <Wheat size={18} color="var(--primary)" /> Crop & Location Selection
+            <Wheat size={18} color="var(--primary)" /> {t('sellDecision.cropAndLocation')}
           </div>
         </div>
 
@@ -127,7 +154,7 @@ export default function SellDecisionPage() {
       </div>
 
       {loading && (
-        <LoadingState message={`Synthesizing sell decision matrix for ${filters.commodity}...`} />
+        <LoadingState message={t('sellDecision.loadingMatrix', { crop: filters.commodity })} />
       )}
 
       {!loading && (
@@ -139,7 +166,7 @@ export default function SellDecisionPage() {
             </div>
 
             <div style={{ marginTop: '0.75rem', fontSize: '0.85rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-muted)' }}>
-              Why this recommendation was generated:
+              {t('sellDecision.whyGenerated')}
             </div>
             <p className="decision-rationale" style={{ fontSize: '1rem', marginTop: '0.35rem', lineHeight: '1.6' }}>
               {rationaleExplanation}
@@ -147,69 +174,110 @@ export default function SellDecisionPage() {
 
             <div className="favorable-window-badge" style={{ marginTop: '1rem' }}>
               <Calendar size={16} color="var(--primary)" />
-              <span>Recommended Selling Window: <strong>{favorableWindow}</strong></span>
+              <span>{t('sellDecision.recommendedWindow')} <strong>{favorableWindow}</strong></span>
             </div>
           </div>
+
+          {/* Farm Expense Break-Even Baseline Integration */}
+          {expenseSummary && expenseSummary.has_records && (
+            <div className="card" style={{ marginBottom: '1.5rem', borderLeft: '4px solid #1c7ed6', backgroundColor: '#f0f9ff' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontWeight: 700, color: '#0369a1', fontSize: '0.95rem' }}>
+                    <Wallet size={18} /> {t('sellDecision.breakEven.title', { crop: expenseSummary.crop })}
+                  </div>
+                  <div style={{ fontSize: '0.85rem', color: '#334155', marginTop: '0.35rem', lineHeight: '1.5' }}>
+                    {currentModal ? (
+                      currentModal >= expenseSummary.break_even_price
+                        ? t('sellDecision.breakEven.above', {
+                            price: formatNumber(expenseSummary.break_even_price),
+                            cost: formatNumber(expenseSummary.total_cost),
+                            current: formatNumber(currentModal),
+                            diff: formatNumber(currentModal - expenseSummary.break_even_price)
+                          })
+                        : t('sellDecision.breakEven.below', {
+                            price: formatNumber(expenseSummary.break_even_price),
+                            cost: formatNumber(expenseSummary.total_cost),
+                            current: formatNumber(currentModal),
+                            diff: formatNumber(expenseSummary.break_even_price - currentModal)
+                          })
+                    ) : (
+                      t('sellDecision.breakEven.base', {
+                        price: formatNumber(expenseSummary.break_even_price),
+                        cost: formatNumber(expenseSummary.total_cost)
+                      })
+                    )}
+                  </div>
+                  <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '0.25rem', fontStyle: 'italic' }}>
+                    {t('sellDecision.breakEven.operationalNote')}
+                  </div>
+                </div>
+                <Link to="/expenses" className="btn btn-outline" style={{ fontSize: '0.82rem', padding: '0.4rem 0.85rem', backgroundColor: '#ffffff' }}>
+                  {t('sellDecision.breakEven.viewDetails')}
+                </Link>
+              </div>
+            </div>
+          )}
 
           {/* 4 Pillars of Decision Support */}
           <div className="section-block">
             <h2 className="section-title">
-              🔍 Decision Synthesis Metrics
+              {t('sellDecision.synthesis.title')}
             </h2>
             <p className="section-subtitle">
-              How current price, 10-year history, AI trajectory, and volatility inform this decision
+              {t('sellDecision.synthesis.subtitle')}
             </p>
 
             <div className="dashboard-stats-strip" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
               {/* 1. Current Price */}
               <div className="card" style={{ padding: '1rem' }}>
                 <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700 }}>
-                  1. Current Modal Rate
+                  {t('sellDecision.synthesis.metric1')}
                 </div>
                 <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem', fontWeight: 800, color: 'var(--primary-dark)', marginTop: '0.2rem' }}>
-                  ₹{Number(currentModal).toLocaleString('en-IN')}<span style={{ fontSize: '0.8rem', fontWeight: 500 }}>/q</span>
+                  {currentModal ? `₹${formatNumber(Number(currentModal))}` : t('sellDecision.synthesis.dataPending')}<span style={{ fontSize: '0.8rem', fontWeight: 500 }}>{currentModal ? t('prediction.perQ') : ''}</span>
                 </div>
-                <div style={{ fontSize: '0.8rem', color: priceDiffPct >= 0 ? '#2b8a3e' : '#c92a2a', marginTop: '0.2rem', fontWeight: 600 }}>
-                  {priceDiffPct >= 0 ? `+${priceDiffPct}% vs 10-Yr Avg` : `${priceDiffPct}% vs 10-Yr Avg`}
+                <div style={{ fontSize: '0.8rem', color: priceDiffPct !== null ? (priceDiffPct >= 0 ? '#2b8a3e' : '#c92a2a') : 'var(--text-muted)', marginTop: '0.2rem', fontWeight: 600 }}>
+                  {priceDiffPct !== null ? (priceDiffPct >= 0 ? `+${priceDiffPct}% ${t('sellDecision.synthesis.vsHistAvg')}` : `${priceDiffPct}% ${t('sellDecision.synthesis.vsHistAvg')}`) : t('sellDecision.synthesis.benchmarkPending')}
                 </div>
               </div>
 
               {/* 2. 10-Year Historical Benchmark */}
               <div className="card" style={{ padding: '1rem' }}>
                 <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700 }}>
-                  2. 10-Year Historical Benchmark
+                  {t('sellDecision.synthesis.metric2')}
                 </div>
                 <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-main)', marginTop: '0.2rem' }}>
-                  ₹{Number(histAvg).toLocaleString('en-IN')}<span style={{ fontSize: '0.8rem', fontWeight: 500 }}>/q</span>
+                  {histAvg ? `₹${formatNumber(Number(histAvg))}` : t('sellDecision.synthesis.dataPending')}<span style={{ fontSize: '0.8rem', fontWeight: 500 }}>{histAvg ? t('prediction.perQ') : ''}</span>
                 </div>
                 <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
-                  Peak Season: <strong>{bestMonthName}</strong>
+                  {t('sellDecision.synthesis.peakSeason')} <strong>{bestMonthName || t('sellDecision.synthesis.seasonalHolding')}</strong>
                 </div>
               </div>
 
               {/* 3. AI 7-Day Trajectory */}
               <div className="card" style={{ padding: '1rem' }}>
                 <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700 }}>
-                  3. AI Forecast Direction
+                  {t('sellDecision.synthesis.metric3')}
                 </div>
                 <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem', fontWeight: 800, color: forecastTrend === 'Increasing' ? '#2b8a3e' : forecastTrend === 'Decreasing' ? '#c92a2a' : 'var(--primary-dark)', marginTop: '0.2rem' }}>
-                  {forecastTrend}
+                  {forecastTrend === 'Increasing' ? t('prediction.kpis.increasing') : forecastTrend === 'Decreasing' ? t('prediction.kpis.decreasing') : t('prediction.kpis.stable')}
                 </div>
                 <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
-                  Shift: <strong>{forecastData?.predicted_change_pct > 0 ? `+${forecastData?.predicted_change_pct}%` : `${forecastData?.predicted_change_pct || 0}%`}</strong>
+                  {t('sellDecision.synthesis.shift')} <strong>{forecastData?.predicted_change_pct > 0 ? `+${forecastData?.predicted_change_pct}%` : `${forecastData?.predicted_change_pct || 0}%`}</strong>
                 </div>
               </div>
 
               {/* 4. Volatility & Anomaly */}
               <div className="card" style={{ padding: '1rem' }}>
                 <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700 }}>
-                  4. Historical Volatility
+                  {t('sellDecision.synthesis.metric4')}
                 </div>
                 <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem', fontWeight: 800, color: volatilityCat === 'High' ? 'var(--accent-red)' : 'var(--primary-dark)', marginTop: '0.2rem' }}>
                   {volatilityCat}
                 </div>
                 <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
-                  CV: <strong>{historicalData?.volatility?.cv_percentage || 14}%</strong>
+                  {t('sellDecision.synthesis.cv')} <strong>{historicalData?.volatility?.cv_percentage || 14}%</strong>
                 </div>
               </div>
             </div>
@@ -219,29 +287,29 @@ export default function SellDecisionPage() {
           <div className="card" style={{ marginTop: '1.5rem' }}>
             <div className="card-header">
               <div className="card-title">
-                ⚖️ Practical Farmer Considerations Before Deciding
+                {t('sellDecision.considerations.title')}
               </div>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem', marginTop: '0.5rem', fontSize: '0.85rem' }}>
               <div style={{ padding: '0.75rem', backgroundColor: 'var(--bg-subtle)', borderRadius: 'var(--radius-sm)' }}>
-                <strong>🌾 Storage & Spoilage:</strong>
+                <strong>{t('sellDecision.considerations.storageTitle')}</strong>
                 <p style={{ color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
-                  Holding produce incurs bag costs, fumigation, and weight shrinkage. For perishable crops like vegetables, immediate selling is almost always prudent.
+                  {t('sellDecision.considerations.storageDesc')}
                 </p>
               </div>
 
               <div style={{ padding: '0.75rem', backgroundColor: 'var(--bg-subtle)', borderRadius: 'var(--radius-sm)' }}>
-                <strong>🚚 Transportation & Fuel:</strong>
+                <strong>{t('sellDecision.considerations.transportTitle')}</strong>
                 <p style={{ color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
-                  Ensure the price spread between markets comfortably exceeds diesel and loading charges before traveling to a distant mandi.
+                  {t('sellDecision.considerations.transportDesc')}
                 </p>
               </div>
 
               <div style={{ padding: '0.75rem', backgroundColor: 'var(--bg-subtle)', borderRadius: 'var(--radius-sm)' }}>
-                <strong>💰 Immediate Liquidity:</strong>
+                <strong>{t('sellDecision.considerations.liquidityTitle')}</strong>
                 <p style={{ color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
-                  If repayment deadlines or sowing input costs (fertilizer, diesel) are pressing, realizing current rates avoids borrowing costs.
+                  {t('sellDecision.considerations.liquidityDesc')}
                 </p>
               </div>
             </div>
@@ -249,8 +317,8 @@ export default function SellDecisionPage() {
 
           {/* Decision Support Non-Guarantee Notice */}
           <div className="disclaimer-box" style={{ marginTop: '1.5rem' }}>
-            <div className="disclaimer-title">Decision Support Disclaimer & Transparency</div>
-            This advice is provided purely for informational and decision-support purposes. KisanSaathi does not guarantee future rates or profits. Actual prices received in APMC auctions depend on individual lot moisture, grading, arrival volume, and daily buyer participation.
+            <div className="disclaimer-title">{t('sellDecision.disclaimerTitle')}</div>
+            {t('sellDecision.disclaimer')}
           </div>
         </>
       )}

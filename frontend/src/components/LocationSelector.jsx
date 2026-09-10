@@ -1,16 +1,18 @@
 import React, { useState } from 'react';
-import { MapPin, Navigation, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Navigation, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { useTranslation } from '../i18n';
 
 export default function LocationSelector({ userLocation, onLocationChange }) {
   const [locating, setLocating] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
   const [successMsg, setSuccessMsg] = useState(null);
+  const { t } = useTranslation();
 
   const handleUseMyLocation = () => {
     if (locating) return;
 
     if (!navigator.geolocation) {
-      setErrorMsg('Your browser does not support location detection. Please select your location manually.');
+      setErrorMsg(t('common.location.notSupported'));
       return;
     }
 
@@ -39,7 +41,7 @@ export default function LocationSelector({ userLocation, onLocationChange }) {
               method: 'GPS',
               matchedInDataset: geo.matched_in_dataset
             });
-            setSuccessMsg(`Detected: ${geo.display_name}`);
+            setSuccessMsg(`${geo.display_name}`);
           } else {
             onLocationChange({
               mode: 'gps',
@@ -48,11 +50,11 @@ export default function LocationSelector({ userLocation, onLocationChange }) {
               district: null,
               state: null,
               city: null,
-              displayName: 'Current GPS location (Location name unavailable)',
+              displayName: `GPS (${t('common.location.locationUnavailable')})`,
               method: 'GPS',
               matchedInDataset: false
             });
-            setSuccessMsg('GPS coordinates acquired.');
+            setSuccessMsg(`${lat}° N, ${lng}° E`);
           }
         } catch (err) {
           onLocationChange({
@@ -62,7 +64,7 @@ export default function LocationSelector({ userLocation, onLocationChange }) {
             district: null,
             state: null,
             city: null,
-            displayName: 'Current GPS location (Location name unavailable)',
+            displayName: `GPS (${t('common.location.locationUnavailable')})`,
             method: 'GPS',
             matchedInDataset: false
           });
@@ -73,10 +75,10 @@ export default function LocationSelector({ userLocation, onLocationChange }) {
       },
       (error) => {
         setLocating(false);
-        let msg = 'Unable to determine your current location. Please try again or select manually.';
-        if (error.code === 1) msg = 'Location permission denied. Please select your location manually.';
-        else if (error.code === 2) msg = 'Unable to determine your current location. Please try again or select manually.';
-        else if (error.code === 3) msg = 'Location request timed out. Please try again.';
+        let msg = t('common.location.gpsUnavailable');
+        if (error.code === 1) msg = t('common.location.permissionDenied');
+        else if (error.code === 2) msg = t('common.location.gpsUnavailable');
+        else if (error.code === 3) msg = t('common.location.timeout');
         setErrorMsg(msg);
       },
       { timeout: 12000, maximumAge: 30000, enableHighAccuracy: true }
@@ -91,19 +93,19 @@ export default function LocationSelector({ userLocation, onLocationChange }) {
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
             <span style={{ fontSize: '0.8rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '0.04em' }}>
-              📍 Farmer Location
+              📍 {t('common.location.farmerLocation')}
             </span>
             <span className="card-badge" style={{ backgroundColor: isGps ? '#228be6' : 'var(--border-medium)', color: isGps ? '#ffffff' : 'var(--text-main)', fontSize: '0.7rem' }}>
-              {isGps ? 'GPS' : 'Manual'}
+              {isGps ? t('common.location.gpsMode') : t('common.location.manualMode')}
             </span>
           </div>
 
           <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.2rem', fontWeight: 700, color: 'var(--primary-deep)', marginTop: '0.1rem' }}>
-            {userLocation.displayName || (userLocation.district ? `${userLocation.district}, ${userLocation.state}` : 'Location Not Set')}
+            {userLocation.displayName || (userLocation.district ? `${userLocation.district}, ${userLocation.state}` : t('common.location.notSet'))}
           </div>
           {userLocation.lat && userLocation.lng && (
             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-              GPS: {userLocation.lat}° N, {userLocation.lng}° E ({isGps ? 'GPS' : 'District Center'})
+              GPS: {userLocation.lat}° N, {userLocation.lng}° E ({isGps ? t('common.location.gpsMode') : t('common.location.districtCenter')})
             </div>
           )}
         </div>
@@ -114,7 +116,7 @@ export default function LocationSelector({ userLocation, onLocationChange }) {
           disabled={locating}
         >
           <Navigation size={16} className={locating ? 'spin' : ''} />
-          {locating ? 'Detecting your location...' : '📍 Use My Location'}
+          {locating ? t('common.location.detecting') : t('common.location.useMyLocation')}
         </button>
       </div>
 

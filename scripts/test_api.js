@@ -24,7 +24,7 @@ function request(options, postData = null) {
 
 async function runTests() {
   console.log('='.repeat(70));
-  console.log('KISANSAATHI SYSTEMATIC API TEST SUITE (PHASE 18)');
+  console.log('KISSANSAATHI SYSTEMATIC API TEST SUITE (PHASE 18)');
   console.log('='.repeat(70));
 
   let passed = 0;

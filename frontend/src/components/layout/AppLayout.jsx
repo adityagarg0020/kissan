@@ -4,9 +4,12 @@ import PriceTicker from '../common/PriceTicker';
 import Sidebar from './Sidebar';
 import Navbar from './Navbar';
 import MobileNavigation from './MobileNavigation';
+import AiChatBubble from '../common/AiChatBubble';
+import { useTranslation } from '../../i18n';
 
 export default function AppLayout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { t } = useTranslation();
 
   return (
     <div className="app-shell">
@@ -32,13 +35,13 @@ export default function AppLayout() {
           {/* Standardized Footer */}
           <footer className="global-app-footer">
             <p>
-              <strong>KisanSaathi Market Intelligence System</strong> &bull; Developed under SIH Problem Statement SIH26127
+              <strong>{t('common.footer.title')}</strong> &bull; {t('common.footer.developedUnder')}
             </p>
             <p style={{ marginTop: '0.25rem' }}>
-              Data Source: Agmarknet via Data.gov.in &bull; Official Government Mandi Price Database
+              {t('common.footer.dataSource')}
             </p>
             <p style={{ marginTop: '0.25rem', fontSize: '0.74rem' }}>
-              Market prices and forecasts are indicative and do not guarantee future profit or rates.
+              {t('common.footer.disclaimer')}
             </p>
           </footer>
         </div>
@@ -49,6 +52,9 @@ export default function AppLayout() {
         isOpen={mobileMenuOpen}
         onClose={() => setMobileMenuOpen(false)}
       />
+
+      {/* 5. Floating AI Assistant Chat Bubble */}
+      <AiChatBubble />
     </div>
   );
 }

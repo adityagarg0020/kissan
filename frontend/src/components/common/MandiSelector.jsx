@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from '../../i18n';
 
 export default function MandiSelector({
   value,
@@ -6,13 +7,17 @@ export default function MandiSelector({
   markets = [],
   disabled = false,
   id = 'mandi-selector',
-  label = 'Mandi / Market',
+  label,
   showAllOption = true,
-  placeholder = '-- Select District First --'
+  placeholder
 }) {
+  const { t } = useTranslation();
+  const displayLabel = label !== undefined ? label : t('market.filters.market');
+  const defaultPlaceholder = placeholder || `-- ${t('common.actions.select')} --`;
+
   return (
     <div className="form-group">
-      {label && <label className="form-label" htmlFor={id}>{label}</label>}
+      {displayLabel && <label className="form-label" htmlFor={id}>{displayLabel}</label>}
       <select
         id={id}
         className="form-select"
@@ -20,8 +25,8 @@ export default function MandiSelector({
         onChange={(e) => onChange(e.target.value)}
         disabled={disabled}
       >
-        {showAllOption && <option value="">-- All Mandis --</option>}
-        {!showAllOption && <option value="">{placeholder}</option>}
+        {showAllOption && <option value="">-- {t('market.filters.allMarkets')} --</option>}
+        {!showAllOption && <option value="">{defaultPlaceholder}</option>}
         {markets.map((m) => (
           <option key={m} value={m}>{m}</option>
         ))}

@@ -2,7 +2,7 @@ const { spawn } = require('child_process');
 const path = require('path');
 
 console.log('\n=============================================================');
-console.log('🌾 Starting KisanSaathi Prototype (Backend + Frontend)...');
+console.log('🌾 Starting KissanSaathi Prototype (Backend + Frontend)...');
 console.log('=============================================================\n');
 
 const backend = spawn('npm', ['run', 'dev'], {

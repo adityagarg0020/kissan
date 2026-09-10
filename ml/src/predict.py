@@ -264,7 +264,7 @@ def predict_crop_price(commodity, state="All India", current_price=None, referen
             "temporal_granularity": "Monthly State-Level Time Series (10 Years)",
             "validation_split": "Chronological holdout (2025–2026 unseen)"
         },
-        "disclaimer": "AI-based estimate for decision support. Actual market prices may vary depending on daily arrivals, moisture, grade, and market conditions. Historical patterns do not guarantee future prices. KisanSaathi does not guarantee profit or exact selling date."
+        "disclaimer": "AI-based estimate for decision support. Actual market prices may vary depending on daily arrivals, moisture, grade, and market conditions. Historical patterns do not guarantee future prices. KissanSaathi does not guarantee profit or exact selling date."
     }
 
 if __name__ == '__main__':

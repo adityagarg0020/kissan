@@ -1,8 +1,8 @@
 {
-  "name": "kisansaathi-workspace",
+  "name": "kissansaathi-workspace",
   "version": "1.0.0",
   "private": true,
-  "description": "KisanSaathi Agriculture Market Intelligence & Price Discovery Prototype",
+  "description": "KissanSaathi Agriculture Market Intelligence & Price Discovery Prototype",
   "scripts": {
     "dev": "node start.js",
     "start": "node start.js",

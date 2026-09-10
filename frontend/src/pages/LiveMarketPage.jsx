@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, RotateCcw, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useMarket } from '../context/MarketContext';
+import { useTranslation } from '../i18n';
 import PriceCard from '../components/common/PriceCard';
 import CropSelector from '../components/common/CropSelector';
 import StateSelector from '../components/common/StateSelector';
@@ -19,6 +20,7 @@ export default function LiveMarketPage() {
     districts,
     markets
   } = useMarket();
+  const { t, formatNumber, formatDate } = useTranslation();
 
   // Local filter states for variety and grade
   const [variety, setVariety] = useState('');
@@ -128,10 +130,10 @@ export default function LiveMarketPage() {
       {/* Page Header */}
       <div className="page-header-box">
         <h1 className="page-title">
-          📈 Live Mandi Prices & Arrivals
+          📈 {t('market.pageTitle')}
         </h1>
         <p className="page-subtitle">
-          Real-time auction rates, min/max spreads, and official arrival logs reported directly from Agmarknet APMC markets across India.
+          {t('market.pageSubtitle')}
         </p>
       </div>
 
@@ -139,7 +141,7 @@ export default function LiveMarketPage() {
       <div className="card" style={{ marginBottom: '1.5rem' }}>
         <div className="card-header">
           <div className="card-title">
-            <Filter size={18} color="var(--primary)" /> Filter Market Auctions
+            <Filter size={18} color="var(--primary)" /> {t('common.actions.filter')}
           </div>
           <button
             className="btn btn-outline"
@@ -147,7 +149,7 @@ export default function LiveMarketPage() {
             style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }}
             title="Reset filters to default"
           >
-            <RotateCcw size={14} /> Reset Filters
+            <RotateCcw size={14} /> {t('common.actions.resetFilters')}
           </button>
         </div>
 
@@ -158,7 +160,7 @@ export default function LiveMarketPage() {
             <input
               type="text"
               className="search-input-field"
-              placeholder="Search by crop name (e.g. Wheat, Tomato, Mustard, Onion, Rice)..."
+              placeholder={t('market.filters.searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => {
                 setSearchQuery(e.target.value);
@@ -227,7 +229,7 @@ export default function LiveMarketPage() {
 
           {/* 5. Variety Filter */}
           <div className="form-group">
-            <label className="form-label" htmlFor="variety-filter">5. Variety</label>
+            <label className="form-label" htmlFor="variety-filter">5. {t('market.filters.variety')}</label>
             <select
               id="variety-filter"
               className="form-select"
@@ -237,7 +239,7 @@ export default function LiveMarketPage() {
                 setCurrentPage(1);
               }}
             >
-              <option value="">-- All Varieties --</option>
+              <option value="">-- {t('market.filters.allVarieties')} --</option>
               {availableVarieties.map(v => (
                 <option key={v} value={v}>{v}</option>
               ))}
@@ -246,7 +248,7 @@ export default function LiveMarketPage() {
 
           {/* 6. Grade Filter */}
           <div className="form-group">
-            <label className="form-label" htmlFor="grade-filter">6. Grade</label>
+            <label className="form-label" htmlFor="grade-filter">6. {t('market.filters.grade')}</label>
             <select
               id="grade-filter"
               className="form-select"
@@ -256,7 +258,7 @@ export default function LiveMarketPage() {
                 setCurrentPage(1);
               }}
             >
-              <option value="">-- All Grades --</option>
+              <option value="">-- {t('market.filters.allGrades')} --</option>
               {availableGrades.map(g => (
                 <option key={g} value={g}>{g}</option>
               ))}
@@ -268,12 +270,12 @@ export default function LiveMarketPage() {
       {/* Hero Current Mandi Price Card */}
       <div style={{ marginBottom: '1.5rem' }}>
         {loadingHero ? (
-          <LoadingState message="Fetching official mandi price details..." />
+          <LoadingState message={t('common.states.loadingData')} />
         ) : currentPriceData ? (
           <PriceCard priceData={currentPriceData} />
         ) : (
           <div className="card" style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--text-muted)' }}>
-            Select a specific crop and mandi from the filters above to view its hero price card.
+            {t('common.states.tryBroadening')}
           </div>
         )}
       </div>
@@ -283,24 +285,24 @@ export default function LiveMarketPage() {
         <div className="card-header">
           <div>
             <div className="card-title">
-              📋 Official Mandi Auction Records
+              📋 {t('market.results.title')}
             </div>
             <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
-              Showing {searchResults.length} of {totalResults.toLocaleString('en-IN')} matching Agmarknet records
+              {t('market.results.showing')} {formatNumber(searchResults.length)} {t('common.actions.of')} {formatNumber(totalResults)} {t('market.results.resultsFound')}
             </div>
           </div>
           <DataSourceBadge source="Agmarknet Data.gov.in" verified={true} />
         </div>
 
         {loadingResults ? (
-          <LoadingState message="Searching mandi records..." />
+          <LoadingState message={t('common.states.loadingData')} />
         ) : searchResults.length === 0 ? (
           <EmptyState
-            title="No Mandi Records Match Your Filters"
-            message="Try clearing your variety or district filter to view broader market records."
+            title={t('market.results.noResults')}
+            message={t('common.states.tryBroadening')}
             action={
               <button className="btn btn-outline" onClick={handleResetFilters}>
-                Reset All Filters
+                {t('common.actions.resetFilters')}
               </button>
             }
           />
@@ -310,14 +312,14 @@ export default function LiveMarketPage() {
               <table className="mandi-table">
                 <thead>
                   <tr>
-                    <th>Mandi / Market</th>
-                    <th>Location</th>
-                    <th>Commodity</th>
-                    <th>Variety / Grade</th>
-                    <th style={{ textAlign: 'right' }}>Min Price</th>
-                    <th style={{ textAlign: 'right' }}>Max Price</th>
-                    <th style={{ textAlign: 'right' }}>Modal Price</th>
-                    <th>Arrival Date</th>
+                    <th>{t('market.results.columns.market')}</th>
+                    <th>{t('market.results.columns.location')}</th>
+                    <th>{t('market.results.columns.commodity')}</th>
+                    <th>{t('market.results.columns.variety')} / {t('market.results.columns.grade')}</th>
+                    <th style={{ textAlign: 'right' }}>{t('market.priceCard.minRate')}</th>
+                    <th style={{ textAlign: 'right' }}>{t('market.priceCard.maxRate')}</th>
+                    <th style={{ textAlign: 'right' }}>{t('market.priceCard.modalPrice')}</th>
+                    <th>{t('market.results.columns.arrivalDate')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -343,16 +345,16 @@ export default function LiveMarketPage() {
                         )}
                       </td>
                       <td style={{ textAlign: 'right', color: 'var(--text-muted)', fontSize: '0.86rem' }}>
-                        ₹{row.min_price}
+                        ₹{formatNumber(row.min_price)}
                       </td>
                       <td style={{ textAlign: 'right', color: 'var(--primary-dark)', fontSize: '0.86rem' }}>
-                        ₹{row.max_price}
+                        ₹{formatNumber(row.max_price)}
                       </td>
                       <td style={{ textAlign: 'right', fontWeight: 800, color: 'var(--primary)', fontSize: '1.05rem', fontFamily: 'var(--font-display)' }}>
-                        ₹{row.modal_price.toLocaleString('en-IN')}<span style={{ fontSize: '0.75rem', fontWeight: 500 }}>/q</span>
+                        ₹{formatNumber(row.modal_price)}<span style={{ fontSize: '0.75rem', fontWeight: 500 }}>{t('market.priceCard.perQuintal')}</span>
                       </td>
                       <td style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-                        {row.arrival_date}
+                        {formatDate(row.arrival_date)}
                       </td>
                     </tr>
                   ))}
@@ -369,11 +371,11 @@ export default function LiveMarketPage() {
                   disabled={currentPage <= 1}
                   style={{ padding: '0.4rem 0.8rem', fontSize: '0.82rem' }}
                 >
-                  <ChevronLeft size={16} /> Previous
+                  <ChevronLeft size={16} /> {t('common.actions.prev')}
                 </button>
 
                 <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-                  Page {currentPage} of {totalPages}
+                  {t('common.actions.page')} {formatNumber(currentPage)} {t('common.actions.of')} {formatNumber(totalPages)}
                 </span>
 
                 <button
@@ -382,7 +384,7 @@ export default function LiveMarketPage() {
                   disabled={currentPage >= totalPages}
                   style={{ padding: '0.4rem 0.8rem', fontSize: '0.82rem' }}
                 >
-                  Next <ChevronRight size={16} />
+                  {t('common.actions.next')} <ChevronRight size={16} />
                 </button>
               </div>
             )}

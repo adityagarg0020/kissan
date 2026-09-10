@@ -104,7 +104,7 @@ class GeocodeService {
       const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&zoom=10&addressdetails=1`;
       const options = {
         headers: {
-          'User-Agent': 'KisanSaathi/1.0 (contact@kisansaathi.in)',
+          'User-Agent': 'KissanSaathi/1.0 (contact@kissansaathi.in)',
           'Accept-Language': 'en'
         },
         timeout: 3500

@@ -1,15 +1,17 @@
 import React from 'react';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { useMarket } from '../../context/MarketContext';
+import { useTranslation } from '../../i18n';
 
 export default function PriceTicker() {
   const { tickerItems, loadingTicker } = useMarket();
+  const { t, formatNumber } = useTranslation();
 
   if (loadingTicker && tickerItems.length === 0) {
     return (
       <div className="ticker-bar">
         <div style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', color: '#a3b899' }}>
-          Loading live Agmarknet market prices...
+          {t('common.ticker.loading')}
         </div>
       </div>
     );
@@ -23,27 +25,27 @@ export default function PriceTicker() {
   const displayItems = [...tickerItems, ...tickerItems];
 
   return (
-    <div className="ticker-bar" aria-label="Live Market Price Ticker">
+    <div className="ticker-bar" aria-label={t('common.ticker.ariaLabel')}>
       <div className="ticker-track-wrapper">
         <div className="ticker-track">
           {displayItems.map((item, idx) => (
             <div className="ticker-item" key={`${item.commodity}-${idx}`}>
               <span className="ticker-crop">🌾 {item.commodity}</span>
-              <span className="ticker-price">₹{item.modal_price.toLocaleString('en-IN')}{item.unit}</span>
+              <span className="ticker-price">₹{formatNumber(item.modal_price)}{item.unit}</span>
 
               {item.movement === 'up' && (
                 <span className="ticker-badge up">
-                  <TrendingUp size={13} /> +₹{Math.abs(item.change)}
+                  <TrendingUp size={13} /> +₹{formatNumber(Math.abs(item.change))}
                 </span>
               )}
               {item.movement === 'down' && (
                 <span className="ticker-badge down">
-                  <TrendingDown size={13} /> -₹{Math.abs(item.change)}
+                  <TrendingDown size={13} /> -₹{formatNumber(Math.abs(item.change))}
                 </span>
               )}
               {item.movement === 'neutral' && (
                 <span className="ticker-badge neutral">
-                  <Minus size={13} /> Steady
+                  <Minus size={13} /> {t('common.ticker.steady')}
                 </span>
               )}
               {(item.movement === 'none' || !item.movement) && (
@@ -51,8 +53,6 @@ export default function PriceTicker() {
                   —
                 </span>
               )}
-
-              <span className="ticker-date">{item.date}</span>
             </div>
           ))}
         </div>

@@ -1,7 +1,9 @@
 import React from 'react';
 import { MapPin, Tag, ShieldCheck, AlertTriangle } from 'lucide-react';
+import { useTranslation } from '../../i18n';
 
 export default function PriceCard({ priceData, compact = false, showSpread = true }) {
+  const { t, formatNumber, formatDate } = useTranslation();
   if (!priceData) return null;
 
   const {
@@ -22,7 +24,8 @@ export default function PriceCard({ priceData, compact = false, showSpread = tru
     disclaimer
   } = priceData;
 
-  const dateStr = display_date || arrival_date || 'Recent';
+  const rawDate = display_date || arrival_date;
+  const dateStr = rawDate ? formatDate(rawDate) : t('market.priceCard.recent');
 
   return (
     <div className={`price-hero-card ${compact ? 'price-card-compact' : ''}`}>
@@ -46,7 +49,7 @@ export default function PriceCard({ priceData, compact = false, showSpread = tru
           )}
           {grade && (
             <span className="card-badge" style={{ backgroundColor: 'var(--blue-wash)', borderColor: '#a5d8ff', color: 'var(--accent-blue)' }}>
-              Grade: {grade}
+              {t('market.priceCard.grade')}: {grade}
             </span>
           )}
         </div>
@@ -55,38 +58,38 @@ export default function PriceCard({ priceData, compact = false, showSpread = tru
       {/* Primary Price Statistics */}
       <div className="price-stat-grid">
         <div className="modal-price-box">
-          <div className="modal-price-label">Current Reported Modal Price</div>
+          <div className="modal-price-label">{t('market.priceCard.modalPrice')}</div>
           <div className="modal-price-value">
-            ₹{Number(modal_price).toLocaleString('en-IN')}
+            ₹{formatNumber(modal_price)}
             <span style={{ fontSize: '1rem', fontWeight: 500, color: 'var(--primary-soft)', marginLeft: '0.4rem' }}>
-              / quintal
+              {t('market.priceCard.perQuintal')}
             </span>
           </div>
           <div style={{ fontSize: '0.8rem', color: 'rgba(255, 255, 255, 0.7)' }}>
-            Most frequent auction rate in session
+            {t('market.priceCard.mostFrequent')}
           </div>
         </div>
 
         <div className="secondary-price-box">
-          <div className="secondary-price-label">Minimum Price</div>
+          <div className="secondary-price-label">{t('market.priceCard.minRate')}</div>
           <div className="secondary-price-value" style={{ color: 'var(--text-secondary)' }}>
-            ₹{Number(min_price).toLocaleString('en-IN')}
+            ₹{formatNumber(min_price)}
           </div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>/ quintal</div>
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{t('market.priceCard.perQuintal')}</div>
         </div>
 
         <div className="secondary-price-box">
-          <div className="secondary-price-label">Maximum Price</div>
+          <div className="secondary-price-label">{t('market.priceCard.maxRate')}</div>
           <div className="secondary-price-value" style={{ color: 'var(--primary-dark)' }}>
-            ₹{Number(max_price).toLocaleString('en-IN')}
+            ₹{formatNumber(max_price)}
           </div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>/ quintal</div>
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{t('market.priceCard.perQuintal')}</div>
         </div>
       </div>
 
       {showSpread && price_spread > 0 && (
         <div style={{ marginTop: '0.85rem', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
-          Daily auction spread: <strong>₹{Number(price_spread).toLocaleString('en-IN')}/q</strong> (between min and max grades).
+          {t('market.priceCard.spread')}: <strong>₹{formatNumber(price_spread)}/q</strong>
         </div>
       )}
 
@@ -98,14 +101,14 @@ export default function PriceCard({ priceData, compact = false, showSpread = tru
             <AlertTriangle size={18} color="var(--accent-red)" />
           )}
           <div>
-            <span><strong>Arrival date:</strong> {dateStr} &bull; {freshness.message || 'Official Mandi Session'}</span>
+            <span><strong>{t('market.priceCard.arrivalDate')}:</strong> {dateStr} &bull; {freshness.message || t('market.priceCard.officialSession')}</span>
           </div>
         </div>
       )}
 
       {(source || disclaimer) && (
         <div style={{ marginTop: '0.75rem', fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
-          {source && <span>Source: {source}</span>}
+          {source && <span>{t('market.priceCard.source')}: {source}</span>}
           {disclaimer && <span>{disclaimer}</span>}
         </div>
       )}

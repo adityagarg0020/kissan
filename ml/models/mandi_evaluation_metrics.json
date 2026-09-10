@@ -1,0 +1,43 @@
+{
+  "metrics_table": [
+    {
+      "Model": "Naive_Commodity_Mean",
+      "Val_MAE": 1454.58,
+      "Test_MAE": 1496.49,
+      "Test_RMSE": 4286.68,
+      "Test_MAPE_%": 1356.73,
+      "Test_R2": 0.6227
+    },
+    {
+      "Model": "Ridge_Regression",
+      "Val_MAE": 97.75,
+      "Test_MAE": 189.12,
+      "Test_RMSE": 576.13,
+      "Test_MAPE_%": 58.06,
+      "Test_R2": 0.9932
+    },
+    {
+      "Model": "Hist_Gradient_Boosting",
+      "Val_MAE": 116.87,
+      "Test_MAE": 185.12,
+      "Test_RMSE": 3336.41,
+      "Test_MAPE_%": 116.09,
+      "Test_R2": 0.7715
+    },
+    {
+      "Model": "Random_Forest",
+      "Val_MAE": 51.9,
+      "Test_MAE": 131.39,
+      "Test_RMSE": 3109.47,
+      "Test_MAPE_%": 3.7,
+      "Test_R2": 0.8015
+    }
+  ],
+  "best_model": "Ridge_Regression",
+  "dataset_source": "Data.gov.in Agmarknet Mandi Daily Arrivals",
+  "train_split": "<= 2026-09-07 (30,297 records)",
+  "val_split": "2026-09-08 (10,012 records)",
+  "test_split": "2026-09-09 Live Fetched (7,206 records)",
+  "total_records": 47515,
+  "generated_at": "2026-09-10T08:21:57.825538"
+}

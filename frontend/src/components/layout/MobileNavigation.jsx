@@ -4,19 +4,23 @@ import {
   Home,
   TrendingUp,
   MapPin,
-  Wheat,
   Bell,
+  Bot,
   X
 } from 'lucide-react';
+import { useTranslation } from '../../i18n';
+import LanguageSwitcher from '../common/LanguageSwitcher';
 import Sidebar from './Sidebar';
 
 export default function MobileNavigation({ isOpen, onClose }) {
+  const { t } = useTranslation();
+
   const bottomItems = [
-    { path: '/', label: 'Home', icon: Home, emoji: '🏠' },
-    { path: '/market', label: 'Prices', icon: TrendingUp, emoji: '📈' },
-    { path: '/nearby-mandis', label: 'Nearby', icon: MapPin, emoji: '📍' },
-    { path: '/sell-decision', label: 'Decision', icon: Wheat, emoji: '🌾' },
-    { path: '/alerts', label: 'Alerts', icon: Bell, emoji: '🔔' }
+    { path: '/dashboard', key: 'home', defaultLabel: 'Home', icon: Home },
+    { path: '/market', key: 'prices', defaultLabel: 'Prices', icon: TrendingUp },
+    { path: '/nearby-mandis', key: 'nearby', defaultLabel: 'Nearby', icon: MapPin },
+    { path: '/ai-assistant', key: 'aiChat', defaultLabel: 'AI Chat', icon: Bot },
+    { path: '/alerts', key: 'alerts', defaultLabel: 'Alerts', icon: Bell }
   ];
 
   return (
@@ -31,15 +35,18 @@ export default function MobileNavigation({ isOpen, onClose }) {
           >
             <div className="mobile-drawer-header">
               <span style={{ fontWeight: 700, color: 'var(--primary-dark)', fontSize: '1.1rem' }}>
-                🌾 KisanSaathi Menu
+                🌾 {t('common.appName')}
               </span>
-              <button
-                onClick={onClose}
-                className="btn-close-drawer"
-                aria-label="Close menu"
-              >
-                <X size={20} />
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <LanguageSwitcher compact={true} />
+                <button
+                  onClick={onClose}
+                  className="btn-close-drawer"
+                  aria-label="Close menu"
+                >
+                  <X size={20} />
+                </button>
+              </div>
             </div>
             <Sidebar onCloseMobile={onClose} />
           </div>
@@ -58,7 +65,9 @@ export default function MobileNavigation({ isOpen, onClose }) {
               className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}
             >
               <Icon size={18} className="bottom-nav-icon" />
-              <span className="bottom-nav-label">{item.label}</span>
+              <span className="bottom-nav-label">
+                {t(`common.navShort.${item.key}`, item.defaultLabel)}
+              </span>
             </NavLink>
           );
         })}

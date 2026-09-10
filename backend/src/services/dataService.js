@@ -71,6 +71,13 @@ class DataService {
     console.log(`[DataService] Datasets loaded: ${this.mandiRecords.length} mandi records, ${this.historicalRecords.length} historical records.`);
   }
 
+  async reloadMandiData() {
+    this.mandiRecords = [];
+    await this.loadMandiData();
+    console.log(`[DataService] Mandi dataset reloaded: ${this.mandiRecords.length} records in memory.`);
+    return this.mandiRecords.length;
+  }
+
   async loadMandiData() {
     const filePath = path.join(PROCESSED_DIR, 'mandi_prices_clean.csv');
     if (!fs.existsSync(filePath)) {
@@ -253,12 +260,29 @@ class DataService {
     const popular = ['Wheat', 'Tomato', 'Onion', 'Potato', 'Rice', 'Paddy(Common)', 'Maize', 'Banana'];
     const tickerItems = [];
 
-    // Latest date in mandi dataset is 2026-09-08
-    const latestDate = '2026-09-08';
-    const prevDate = '2026-09-07';
+    // Dynamically discover latest available dates across mandi records
+    const dates = [...new Set(this.mandiRecords.map(r => r.arrival_date))].filter(Boolean).sort().reverse();
+    const latestDate = dates[0] || '2026-09-09';
+    const prevDate = dates[1] || '2026-09-08';
+
+    // Format DD/MM/YYYY for latest date
+    const [ly, lm, ld] = latestDate.split('-');
+    const defaultDateFormatted = (ly && lm && ld) ? `${ld}/${lm}/${ly}` : '09/09/2026';
 
     for (const crop of popular) {
-      const latestRows = this.mandiRecords.filter(r => r.commodity.toLowerCase() === crop.toLowerCase() && r.arrival_date === latestDate);
+      let latestRows = this.mandiRecords.filter(r => r.commodity.toLowerCase() === crop.toLowerCase() && r.arrival_date === latestDate);
+      let targetDateStr = defaultDateFormatted;
+
+      // If popular crop not present on the absolute latest date, fallback to its latest available date
+      if (latestRows.length === 0) {
+        const cropDates = [...new Set(this.mandiRecords.filter(r => r.commodity.toLowerCase() === crop.toLowerCase()).map(r => r.arrival_date))].filter(Boolean).sort().reverse();
+        if (cropDates.length > 0) {
+          latestRows = this.mandiRecords.filter(r => r.commodity.toLowerCase() === crop.toLowerCase() && r.arrival_date === cropDates[0]);
+          const [cy, cm, cd] = cropDates[0].split('-');
+          targetDateStr = (cy && cm && cd) ? `${cd}/${cm}/${cy}` : defaultDateFormatted;
+        }
+      }
+
       const prevRows = this.mandiRecords.filter(r => r.commodity.toLowerCase() === crop.toLowerCase() && r.arrival_date === prevDate);
 
       if (latestRows.length > 0) {
@@ -278,7 +302,7 @@ class DataService {
           commodity: crop,
           modal_price: avgLatest,
           unit: '₹/q',
-          date: '08/09/2026',
+          date: targetDateStr,
           movement: movement, // 'up' | 'down' | 'neutral' | 'none'
           change: diff,
           markets_count: latestRows.length

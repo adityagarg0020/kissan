@@ -1,0 +1,244 @@
+{
+  "farms": [
+    {
+      "id": "farm-1789013981657",
+      "user_id": null,
+      "farm_name": "Aligarh Wheat Farm",
+      "crop": "Wheat",
+      "variety": "",
+      "season": "Rabi",
+      "year": 2026,
+      "area": 5,
+      "area_unit": "Acre",
+      "expected_production": 100,
+      "actual_production": 0,
+      "production_unit": "Quintal",
+      "expected_selling_price": 0,
+      "actual_selling_price": 0,
+      "quantity_sold": 0,
+      "selling_date": "2026-09-10",
+      "selected_mandi": "Agra",
+      "selected_state": "Uttar Pradesh",
+      "expenses": [
+        {
+          "id": "exp-1789013981671-y73w",
+          "category": "Seeds",
+          "name": "Seeds",
+          "cost": 8500,
+          "date": "2026-09-08",
+          "quantity": null,
+          "unit": null,
+          "workers": null,
+          "days": null,
+          "equipment": null,
+          "description": "Certified Sharbati wheat seeds"
+        }
+      ],
+      "created_at": "2026-09-10T04:19:41.657Z",
+      "updated_at": "2026-09-10T04:19:41.671Z"
+    },
+    {
+      "id": "farm-1789013704924",
+      "user_id": null,
+      "farm_name": "Aligarh Wheat Farm",
+      "crop": "Wheat",
+      "variety": "",
+      "season": "Rabi",
+      "year": 2026,
+      "area": 5,
+      "area_unit": "Acre",
+      "expected_production": 100,
+      "actual_production": 0,
+      "production_unit": "Quintal",
+      "expected_selling_price": 0,
+      "actual_selling_price": 0,
+      "quantity_sold": 0,
+      "selling_date": "2026-09-10",
+      "selected_mandi": "Agra",
+      "selected_state": "Uttar Pradesh",
+      "expenses": [
+        {
+          "id": "exp-1789013704936-34tl",
+          "category": "Seeds",
+          "name": "Seeds",
+          "cost": 8500,
+          "date": "2026-09-08",
+          "quantity": null,
+          "unit": null,
+          "workers": null,
+          "days": null,
+          "equipment": null,
+          "description": "Certified Sharbati wheat seeds"
+        }
+      ],
+      "created_at": "2026-09-10T04:15:04.924Z",
+      "updated_at": "2026-09-10T04:15:04.936Z"
+    },
+    {
+      "id": "farm-1789013618086",
+      "user_id": null,
+      "farm_name": "Aligarh Wheat Farm",
+      "crop": "Wheat",
+      "variety": "",
+      "season": "Rabi",
+      "year": 2026,
+      "area": 5,
+      "area_unit": "Acre",
+      "expected_production": 100,
+      "actual_production": 0,
+      "production_unit": "Quintal",
+      "expected_selling_price": 0,
+      "actual_selling_price": 0,
+      "quantity_sold": 0,
+      "selling_date": "2026-09-10",
+      "selected_mandi": "Agra",
+      "selected_state": "Uttar Pradesh",
+      "expenses": [
+        {
+          "id": "exp-1789013618100-q22a",
+          "category": "Seeds",
+          "name": "Seeds",
+          "cost": 8500,
+          "date": "2026-09-08",
+          "quantity": null,
+          "unit": null,
+          "workers": null,
+          "days": null,
+          "equipment": null,
+          "description": "Certified Sharbati wheat seeds"
+        }
+      ],
+      "created_at": "2026-09-10T04:13:38.086Z",
+      "updated_at": "2026-09-10T04:13:38.100Z"
+    },
+    {
+      "id": "farm-1789013536858",
+      "user_id": null,
+      "farm_name": "Test QA Farm",
+      "crop": "Wheat",
+      "variety": "",
+      "season": "Rabi",
+      "year": 2026,
+      "area": 5,
+      "area_unit": "Acre",
+      "expected_production": 100,
+      "actual_production": 0,
+      "production_unit": "Quintal",
+      "expected_selling_price": 0,
+      "actual_selling_price": 0,
+      "quantity_sold": 0,
+      "selling_date": "2026-09-10",
+      "selected_mandi": "Agra",
+      "selected_state": "Uttar Pradesh",
+      "expenses": [
+        {
+          "id": "exp-1789013536869-elkk",
+          "category": "Seeds",
+          "name": "Seeds",
+          "cost": 5000,
+          "date": "2026-09-10",
+          "quantity": null,
+          "unit": null,
+          "workers": null,
+          "days": null,
+          "equipment": null,
+          "description": "Wheat seeds"
+        }
+      ],
+      "created_at": "2026-09-10T04:12:16.858Z",
+      "updated_at": "2026-09-10T04:12:16.869Z"
+    },
+    {
+      "id": "farm-wheat-2026",
+      "farm_name": "Main Village Farm",
+      "crop": "Wheat",
+      "variety": "HD-2967",
+      "season": "Rabi",
+      "year": 2026,
+      "area": 2,
+      "area_unit": "Acre",
+      "expected_production": 25,
+      "actual_production": 27,
+      "production_unit": "Quintal",
+      "expected_selling_price": 2600,
+      "actual_selling_price": 2620,
+      "quantity_sold": 27,
+      "selling_date": "2026-09-09",
+      "selected_mandi": "Agra",
+      "selected_state": "Uttar Pradesh",
+      "expenses": [
+        {
+          "id": "exp-1",
+          "category": "Seeds",
+          "name": "Certified Wheat Seeds (HD-2967)",
+          "quantity": 80,
+          "unit": "kg",
+          "cost": 4500,
+          "date": "2026-04-10"
+        },
+        {
+          "id": "exp-2",
+          "category": "Fertilizer",
+          "name": "DAP & Urea Fertilizer Bags",
+          "quantity": 4,
+          "unit": "bags",
+          "cost": 8200,
+          "date": "2026-05-12"
+        },
+        {
+          "id": "exp-3",
+          "category": "Labour",
+          "name": "Field Sowing, Weeding & Harvesting",
+          "workers": 8,
+          "days": 5,
+          "cost": 12000,
+          "date": "2026-06-01"
+        },
+        {
+          "id": "exp-4",
+          "category": "Irrigation",
+          "name": "Tubewell Electricity & Water Runs",
+          "cost": 3500,
+          "date": "2026-06-20"
+        },
+        {
+          "id": "exp-5",
+          "category": "Machinery",
+          "name": "Tractor Plowing & Rotavator",
+          "equipment": "Tractor",
+          "cost": 5000,
+          "date": "2026-04-05"
+        },
+        {
+          "id": "exp-6",
+          "category": "Transportation",
+          "name": "Trolley Freight to APMC Mandi",
+          "cost": 2000,
+          "date": "2026-09-08"
+        },
+        {
+          "id": "exp-7",
+          "category": "Other",
+          "name": "Jute Bags, Twine & Handling",
+          "cost": 1000,
+          "date": "2026-09-08"
+        },
+        {
+          "id": "exp-1788979923707-zr5u",
+          "category": "Fuel",
+          "name": "Fuel",
+          "cost": 5000,
+          "date": "2026-09-09",
+          "quantity": null,
+          "unit": null,
+          "workers": null,
+          "days": null,
+          "equipment": null,
+          "description": null
+        }
+      ],
+      "created_at": "2026-04-01T10:00:00.000Z",
+      "updated_at": "2026-09-09T18:52:03.707Z"
+    }
+  ]
+}

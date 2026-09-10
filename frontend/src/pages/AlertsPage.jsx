@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Bell, Plus, CheckCircle, ShieldCheck } from 'lucide-react';
 import { useMarket } from '../context/MarketContext';
+import { useAuth } from '../context/AuthContext';
+import { useTranslation } from '../i18n';
 import CropSelector from '../components/common/CropSelector';
 import StateSelector from '../components/common/StateSelector';
 import AlertCard from '../components/common/AlertCard';
@@ -9,6 +11,8 @@ import EmptyState from '../components/common/EmptyState';
 
 export default function AlertsPage() {
   const { filters, commodities, states, setAlertsCount } = useMarket();
+  const { session } = useAuth();
+  const { t, formatNumber } = useTranslation();
 
   const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -19,12 +23,34 @@ export default function AlertsPage() {
   const [alertType, setAlertType] = useState('above');
   const [targetPrice, setTargetPrice] = useState(2600);
   const [thresholdPct, setThresholdPct] = useState(5);
+  const [currentMarketPrice, setCurrentMarketPrice] = useState(null);
   const [successMsg, setSuccessMsg] = useState(null);
+
+  // Fetch current live benchmark price whenever selected crop or state changes
+  useEffect(() => {
+    if (!selectedCrop) return;
+    const params = new URLSearchParams({ commodity: selectedCrop });
+    if (selectedState && selectedState !== 'All India') {
+      params.append('state', selectedState);
+    }
+    fetch(`/api/market/current-price?${params.toString()}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.data && data.data.modal_price) {
+          setCurrentMarketPrice(data.data.modal_price);
+          setTargetPrice(Math.round(data.data.modal_price * 1.05));
+        } else {
+          setCurrentMarketPrice(null);
+        }
+      })
+      .catch(err => console.error('Failed to fetch benchmark price:', err));
+  }, [selectedCrop, selectedState]);
 
   // Load existing alerts
   const loadAlerts = () => {
     setLoading(true);
-    fetch('/api/market/alerts')
+    const headers = session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {};
+    fetch('/api/market/alerts', { headers })
       .then(res => res.json())
       .then(data => {
         if (data.success && data.alerts) {
@@ -41,7 +67,7 @@ export default function AlertsPage() {
 
   useEffect(() => {
     loadAlerts();
-  }, []);
+  }, [session?.access_token]);
 
   const handleCreateAlert = (e) => {
     e.preventDefault();
@@ -50,14 +76,17 @@ export default function AlertsPage() {
       commodity: selectedCrop,
       state: selectedState,
       alert_type: alertType,
-      target_price: parseFloat(targetPrice) || 2500,
+      target_price: parseFloat(targetPrice) || (currentMarketPrice ? Math.round(currentMarketPrice * 1.05) : 2500),
       threshold_pct: parseFloat(thresholdPct) || 5,
-      current_price: 2450
+      current_price: currentMarketPrice || (parseFloat(targetPrice) || null)
     };
 
     fetch('/api/market/alerts', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
+      },
       body: JSON.stringify(payload)
     })
       .then(res => res.json())
@@ -66,7 +95,7 @@ export default function AlertsPage() {
           const updated = [data.alert, ...alerts];
           setAlerts(updated);
           setAlertsCount(updated.length);
-          setSuccessMsg(`Price alert successfully activated for ${selectedCrop}!`);
+          setSuccessMsg(t('alerts.create.activated', { crop: selectedCrop }));
           setTimeout(() => setSuccessMsg(null), 3500);
         }
       })
@@ -74,7 +103,12 @@ export default function AlertsPage() {
   };
 
   const handleDeleteAlert = (id) => {
-    fetch(`/api/market/alerts/${id}`, { method: 'DELETE' })
+    fetch(`/api/market/alerts/${id}`, {
+      method: 'DELETE',
+      headers: {
+        ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
+      }
+    })
       .then(res => res.json())
       .then(data => {
         if (data.success) {
@@ -91,10 +125,10 @@ export default function AlertsPage() {
       {/* Page Header */}
       <div className="page-header-box">
         <h1 className="page-title">
-          🔔 Farmer Price Alerts & Notifications
+          🔔 {t('alerts.pageTitle')}
         </h1>
         <p className="page-subtitle">
-          Configure real-time threshold notifications for auction price increases, drops, daily volatility spikes, or AI forecast trend changes.
+          {t('alerts.pageSubtitle')}
         </p>
       </div>
 
@@ -102,9 +136,9 @@ export default function AlertsPage() {
       <div className="card" style={{ marginBottom: '1.5rem' }}>
         <div className="card-header">
           <div className="card-title">
-            <Plus size={18} color="var(--primary)" /> Create New Price Alert
+            <Plus size={18} color="var(--primary)" /> {t('alerts.create.title')}
           </div>
-          <span className="card-badge">{alerts.length} Active Alerts</span>
+          <span className="card-badge">{t('alerts.create.activeBadge', { count: alerts.length })}</span>
         </div>
 
         <form onSubmit={handleCreateAlert}>
@@ -127,26 +161,33 @@ export default function AlertsPage() {
 
             {/* Alert Type */}
             <div className="form-group">
-              <label className="form-label" htmlFor="alert-type-select">Alert Trigger Condition</label>
+              <label className="form-label" htmlFor="alert-type-select">{t('alerts.create.conditionLabel')}</label>
               <select
                 id="alert-type-select"
                 className="form-select"
                 value={alertType}
                 onChange={(e) => setAlertType(e.target.value)}
               >
-                <option value="above">Price Rises Above Target (₹/q)</option>
-                <option value="below">Price Drops Below Floor (₹/q)</option>
-                <option value="movement">Significant Daily Shift (±%)</option>
-                <option value="forecast">AI Forecast Trend Change</option>
+                <option value="above">{t('alerts.create.above')}</option>
+                <option value="below">{t('alerts.create.below')}</option>
+                <option value="movement">{t('alerts.create.movement')}</option>
+                <option value="forecast">{t('alerts.create.forecast')}</option>
               </select>
             </div>
 
             {/* Conditional Target Input */}
             {(alertType === 'above' || alertType === 'below') && (
               <div className="form-group">
-                <label className="form-label" htmlFor="target-price-input">
-                  Target Modal Price (₹/quintal)
-                </label>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                  <label className="form-label" htmlFor="target-price-input" style={{ marginBottom: 0 }}>
+                    {t('alerts.create.targetPrice')}
+                  </label>
+                  {currentMarketPrice && (
+                    <span style={{ fontSize: '0.78rem', color: 'var(--primary)', fontWeight: 600 }}>
+                      {t('alerts.create.liveMandi', { price: formatNumber(currentMarketPrice) })}
+                    </span>
+                  )}
+                </div>
                 <input
                   id="target-price-input"
                   type="number"
@@ -163,7 +204,7 @@ export default function AlertsPage() {
             {alertType === 'movement' && (
               <div className="form-group">
                 <label className="form-label" htmlFor="threshold-pct-input">
-                  Percentage Shift Threshold (±%)
+                  {t('alerts.create.shiftThreshold')}
                 </label>
                 <input
                   id="threshold-pct-input"
@@ -180,9 +221,9 @@ export default function AlertsPage() {
 
             {alertType === 'forecast' && (
               <div className="form-group">
-                <label className="form-label">AI Forecast Watch</label>
+                <label className="form-label">{t('alerts.create.forecastWatch')}</label>
                 <div style={{ padding: '0.65rem', backgroundColor: 'var(--bg-subtle)', borderRadius: 'var(--radius-sm)', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
-                  Triggers whenever model shifts between Increasing, Decreasing, or Stable.
+                  {t('alerts.create.forecastHint')}
                 </div>
               </div>
             )}
@@ -190,7 +231,7 @@ export default function AlertsPage() {
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
             <button type="submit" className="btn btn-primary" style={{ padding: '0.65rem 1.25rem' }}>
-              <Plus size={16} /> Set Active Alert
+              <Plus size={16} /> {t('alerts.create.saveBtn')}
             </button>
 
             {successMsg && (
@@ -206,19 +247,19 @@ export default function AlertsPage() {
       <div className="card">
         <div className="card-header">
           <div className="card-title">
-            <Bell size={18} color="var(--primary)" /> Your Active Alerts
+            <Bell size={18} color="var(--primary)" /> {t('alerts.active.title')}
           </div>
           <button className="btn btn-outline" onClick={loadAlerts} style={{ fontSize: '0.78rem', padding: '0.3rem 0.65rem' }}>
-            Refresh Alerts
+            {t('alerts.active.refresh')}
           </button>
         </div>
 
         {loading ? (
-          <LoadingState message="Loading active alerts..." />
+          <LoadingState message={t('alerts.active.loading')} />
         ) : alerts.length === 0 ? (
           <EmptyState
-            title="No Active Alerts Configured"
-            message="Set a price alert above to be notified when your crop reaches your desired selling rate or experiences market shifts."
+            title={t('alerts.active.emptyTitle')}
+            message={t('alerts.active.emptyMessage')}
           />
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
@@ -239,10 +280,10 @@ export default function AlertsPage() {
           <ShieldCheck size={22} color="var(--primary)" style={{ flexShrink: 0, marginTop: '0.1rem' }} />
           <div>
             <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--primary-dark)' }}>
-              How KisanSaathi Alerts Function
+              {t('alerts.advisory.title')}
             </div>
             <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '0.25rem', lineHeight: '1.5' }}>
-              Every morning when fresh APMC arrival rates are published on Agmarknet, alerts are evaluated against updated auction records. In the live prototype, active alerts simulate instant trigger detection based on the latest 2026 session records.
+              {t('alerts.advisory.text')}
             </p>
           </div>
         </div>
