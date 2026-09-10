@@ -92,7 +92,7 @@ export default function ExpenseSummaryCard() {
               {t('expenses.summaryCard.breakEvenPrice')}
             </div>
             <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#2b8a3e' }}>
-              {summary.break_even_price ? `₹${formatNumber(summary.break_even_price)}/q` : '—'}
+              {(summary.break_even_price !== null && summary.break_even_price !== undefined) ? `₹${formatNumber(summary.break_even_price)}/q` : '—'}
             </div>
           </div>
 

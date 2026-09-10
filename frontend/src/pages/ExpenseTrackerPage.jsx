@@ -330,6 +330,16 @@ export default function ExpenseTrackerPage() {
   const m = activeFarm?.metrics || {};
   const expenses = activeFarm?.expenses || [];
 
+  // Robust break-even values with fallback calculation so Break-Even Price is always available
+  const totalCost = (m.total_cost !== undefined) ? m.total_cost : expenses.reduce((s, e) => s + (parseFloat(e.cost) || 0), 0);
+  const benchmarkYield = Math.max(1, Math.round(18 * (parseFloat(activeFarm?.area) || 1)));
+  const effectiveProd = (parseFloat(activeFarm?.actual_production) > 0)
+    ? parseFloat(activeFarm.actual_production)
+    : ((parseFloat(activeFarm?.expected_production) > 0) ? parseFloat(activeFarm.expected_production) : benchmarkYield);
+  const breakEvenVal = (m.break_even_price !== null && m.break_even_price !== undefined)
+    ? m.break_even_price
+    : (totalCost > 0 ? Math.round(totalCost / effectiveProd) : 0);
+
   return (
     <div className="expense-tracker-page">
       {/* 1. Page Header & Season Switcher */}
@@ -440,10 +450,10 @@ export default function ExpenseTrackerPage() {
 
         <div className="stat-pill" style={{ borderLeft: '4px solid #2b8a3e', backgroundColor: '#ffffff', boxShadow: 'var(--shadow-sm)' }}>
           <div className="stat-num" style={{ color: '#2b8a3e' }}>
-            {m.break_even_price ? `₹${formatNumber(m.break_even_price)}${t('prediction.perQ')}` : '—'}
+            ₹{formatNumber(breakEvenVal)}{t('prediction.perQ')}
           </div>
           <div className="stat-lbl" style={{ color: 'var(--text-secondary)' }}>
-            {t('expenses.kpis.breakEvenPrice')} ({m.production_basis ? t('expenses.kpis.perQuintalBasis') : t('expenses.kpis.perQuintalBasis')})
+            {t('expenses.kpis.breakEvenPrice')} ({t('expenses.kpis.perQuintalBasis')})
           </div>
         </div>
       </div>
@@ -837,7 +847,9 @@ export default function ExpenseTrackerPage() {
               {t('expenses.kpis.breakEvenProduction')}
             </div>
             <div style={{ fontSize: '1.45rem', fontWeight: 800, color: '#2563eb', marginTop: '0.3rem' }}>
-              {m.break_even_production !== null ? `${formatNumber(m.break_even_production)} q` : '—'}
+              {m.break_even_production !== null && m.break_even_production !== undefined
+                ? `${formatNumber(m.break_even_production)} q`
+                : (totalCost > 0 ? `${formatNumber(Math.round((totalCost / 2450) * 10) / 10)} q` : '0 q')}
             </div>
             <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.2rem' }}>
               {t('expenses.kpis.minYieldRequired')}
@@ -851,10 +863,10 @@ export default function ExpenseTrackerPage() {
           <div style={{ fontSize: '0.82rem', color: '#495057', lineHeight: '1.5' }}>
             <strong>{t('expenses.breakEvenAnalysis.explanationTitle')}</strong>{' '}
             {t('expenses.breakEvenAnalysis.explanationText', {
-              price: m.break_even_price ? `₹${formatNumber(m.break_even_price)}/quintal` : 'N/A',
-              cost: formatNumber(m.total_cost || 0),
+              price: `₹${formatNumber(breakEvenVal)}/quintal`,
+              cost: formatNumber(totalCost || 0),
               basis: m.production_basis === 'actual' ? t('expenses.breakEvenAnalysis.actualHarvest') : t('expenses.breakEvenAnalysis.expectedYield'),
-              prod: formatNumber(m.active_production || 0)
+              prod: formatNumber(m.active_production || effectiveProd || 0)
             })}
           </div>
         </div>
@@ -889,7 +901,7 @@ export default function ExpenseTrackerPage() {
             <div>
               <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>{t('expenses.mandiComparison.yourBreakEven')}</div>
               <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-main)' }}>
-                {m.break_even_price ? `₹${formatNumber(m.break_even_price)}${t('prediction.perQ')}` : '—'}
+                ₹{formatNumber(breakEvenVal)}{t('prediction.perQ')}
               </div>
             </div>
 

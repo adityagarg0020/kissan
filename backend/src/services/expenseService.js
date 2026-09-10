@@ -25,6 +25,47 @@ const PREDEFINED_CATEGORIES = [
   'Other'
 ];
 
+// Standard Indian agricultural yields (in Quintals per Acre) and average selling benchmarks
+const CROP_BENCHMARK_YIELDS = {
+  'Wheat': 18,
+  'Paddy': 22,
+  'Rice': 22,
+  'Cotton': 10,
+  'Mustard': 8,
+  'Soybean': 10,
+  'Maize': 24,
+  'Gram': 8,
+  'Chana': 8,
+  'Potato': 100,
+  'Onion': 80,
+  'Sugarcane': 350,
+  'Tomato': 120,
+  'Groundnut': 12,
+  'Bajra': 12,
+  'Jowar': 10,
+  'Barley': 14
+};
+
+const CROP_BENCHMARK_PRICES = {
+  'Wheat': 2450,
+  'Paddy': 2300,
+  'Rice': 2800,
+  'Cotton': 7120,
+  'Mustard': 5450,
+  'Soybean': 4600,
+  'Maize': 2225,
+  'Gram': 5440,
+  'Chana': 5440,
+  'Potato': 1250,
+  'Onion': 1750,
+  'Sugarcane': 340,
+  'Tomato': 1800,
+  'Groundnut': 6375,
+  'Bajra': 2500,
+  'Jowar': 3180,
+  'Barley': 1850
+};
+
 class ExpenseService {
   constructor() {
     this.farms = [];
@@ -111,19 +152,35 @@ class ExpenseService {
     const expectedProd = parseFloat(farm.expected_production) || 0;
     const prodUnit = farm.production_unit || 'Quintal';
 
-    const activeProd = actualProd > 0 ? actualProd : (expectedProd > 0 ? expectedProd : 0);
-    const prodBasis = actualProd > 0 ? 'actual' : (expectedProd > 0 ? 'expected' : 'none');
+    // Standard benchmark yield based on crop & area
+    const benchmarkYieldPerAcre = CROP_BENCHMARK_YIELDS[farm.crop] || CROP_BENCHMARK_YIELDS['Wheat'] || 18;
+    const benchmarkProd = Math.max(1, Math.round(benchmarkYieldPerAcre * (normalizedAcres > 0 ? normalizedAcres : 1)));
 
-    const costPerQuintal = activeProd > 0 ? Math.round(totalCost / activeProd) : null;
-    const breakEvenPrice = activeProd > 0 ? Math.round(totalCost / activeProd) : null;
+    let activeProd = 0;
+    let prodBasis = 'benchmark';
+
+    if (actualProd > 0) {
+      activeProd = actualProd;
+      prodBasis = 'actual';
+    } else if (expectedProd > 0) {
+      activeProd = expectedProd;
+      prodBasis = 'expected';
+    } else {
+      activeProd = benchmarkProd;
+      prodBasis = 'benchmark';
+    }
+
+    const costPerQuintal = activeProd > 0 ? Math.round(totalCost / activeProd) : 0;
+    const breakEvenPrice = activeProd > 0 ? Math.round(totalCost / activeProd) : 0;
 
     // Selling Details & Revenue
     const expSellPrice = parseFloat(farm.expected_selling_price) || 0;
     const actSellPrice = parseFloat(farm.actual_selling_price) || 0;
     const qtySold = parseFloat(farm.quantity_sold) || 0;
 
-    const effectiveSellPrice = actSellPrice > 0 ? actSellPrice : expSellPrice;
-    const breakEvenProduction = effectiveSellPrice > 0 ? Math.round((totalCost / effectiveSellPrice) * 10) / 10 : null;
+    const benchmarkPrice = CROP_BENCHMARK_PRICES[farm.crop] || 2450;
+    const effectiveSellPrice = actSellPrice > 0 ? actSellPrice : (expSellPrice > 0 ? expSellPrice : benchmarkPrice);
+    const breakEvenProduction = effectiveSellPrice > 0 ? Math.round((totalCost / effectiveSellPrice) * 10) / 10 : 0;
 
     const estimatedRevenue = (expectedProd > 0 && expSellPrice > 0) ? Math.round(expectedProd * expSellPrice) : 0;
     const actualRevenue = (qtySold > 0 && actSellPrice > 0) ? Math.round(qtySold * actSellPrice) : 0;
@@ -274,21 +331,26 @@ class ExpenseService {
   createFarm(data, userId = null) {
     const areaVal = parseFloat(data.area !== undefined ? data.area : data.land_area);
     const expProd = parseFloat(data.expected_production !== undefined ? data.expected_production : data.estimated_production);
+    const expSellPrice = parseFloat(data.expected_selling_price);
+    const cropName = (data.crop || 'Wheat').trim();
+    const normalizedArea = areaVal > 0 ? areaVal : 1;
+    const defaultYield = (CROP_BENCHMARK_YIELDS[cropName] || 18) * normalizedArea;
+    const defaultPrice = CROP_BENCHMARK_PRICES[cropName] || 2450;
 
     const newFarm = {
       id: `farm-${Date.now()}`,
       user_id: userId || data.user_id || null,
-      farm_name: (data.farm_name || 'My Farm').trim(),
-      crop: (data.crop || 'Wheat').trim(),
+      farm_name: (data.farm_name || `${cropName} Field`).trim(),
+      crop: cropName,
       variety: (data.variety || '').trim(),
       season: data.season || 'Rabi',
       year: parseInt(data.year, 10) || 2026,
-      area: areaVal > 0 ? areaVal : 1,
+      area: normalizedArea,
       area_unit: data.area_unit || data.land_unit || 'Acre',
-      expected_production: expProd > 0 ? expProd : 0,
+      expected_production: expProd > 0 ? expProd : defaultYield,
       actual_production: parseFloat(data.actual_production) || 0,
       production_unit: data.production_unit || 'Quintal',
-      expected_selling_price: parseFloat(data.expected_selling_price) || 0,
+      expected_selling_price: expSellPrice > 0 ? expSellPrice : defaultPrice,
       actual_selling_price: parseFloat(data.actual_selling_price) || 0,
       quantity_sold: parseFloat(data.quantity_sold) || 0,
       selling_date: data.selling_date || new Date().toISOString().split('T')[0],
